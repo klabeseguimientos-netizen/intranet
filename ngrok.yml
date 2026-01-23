@@ -1,0 +1,8 @@
+version: "2"
+authtoken: TU_TOKEN
+tunnels:
+  laravel-app:
+    proto: http
+    addr: 8000
+    host_header: "localhost:8000"
+    bind_tls: true

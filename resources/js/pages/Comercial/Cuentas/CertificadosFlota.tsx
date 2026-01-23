@@ -52,8 +52,8 @@ export default function CertificadosFlota() {
                                 <td className="py-3 px-4">CERT-2024-001</td>
                                 <td className="py-3 px-4">Transportes Rápidos S.A.</td>
                                 <td className="py-3 px-4">15</td>
-                                <td className="py-3 px-4">01/01/2024</td>
-                                <td className="py-3 px-4">31/12/2024</td>
+                                <td className="py-3 px-4">01/01/2026</td>
+                                <td className="py-3 px-4">31/02/2026</td>
                                 <td className="py-3 px-4">
                                     <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                                         Vigente

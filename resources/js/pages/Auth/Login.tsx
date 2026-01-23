@@ -178,7 +178,7 @@ export default function Login() {
                                 </span>
                             </div>
                             <span className="text-xs font-bold text-local">
-                                v2.0
+                                v0.1
                             </span>
                         </div>
                     </div>

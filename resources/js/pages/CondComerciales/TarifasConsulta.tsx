@@ -1,47 +1,56 @@
 // resources/js/Pages/CondComerciales/TarifasConsulta.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
+import { router } from '@inertiajs/react';
 
-interface Tarifa {
-    id: number;
-    servicio: string;
-    categoria: string;
-    precio_base: number;
-    precio_km: number;
-    precio_hora: number;
-    disponibilidad: string;
-    aplica_convenio: boolean;
-    ultima_actualizacion: string;
-}
-
-interface Abono {
+interface ProductoServicio {
     id: number;
     nombre: string;
-    tipo: string;
-    precio: number;
-    duracion_dias: number;
-    vehiculos_incluidos: number;
-    descuento: number;
+    descripcion: string;
+    valor: number;
+    tipo_id: number;
+    compania_id: number;
+    es_activo: boolean;
+    created: string;
+    modified: string;
+    tipo?: TipoPrdSrv;
 }
 
-export default function TarifasConsulta() {
-    const [tarifas] = useState<Tarifa[]>([
-        { id: 1, servicio: 'Transporte Local', categoria: 'Básico', precio_base: 5000, precio_km: 350, precio_hora: 2500, disponibilidad: '24/7', aplica_convenio: true, ultima_actualizacion: '2024-01-10' },
-        { id: 2, servicio: 'Distribución Urbana', categoria: 'Standard', precio_base: 7500, precio_km: 450, precio_hora: 3200, disponibilidad: 'Diurno', aplica_convenio: true, ultima_actualizacion: '2024-01-15' },
-        { id: 3, servicio: 'Logística Express', categoria: 'Premium', precio_base: 12000, precio_km: 600, precio_hora: 5000, disponibilidad: '24/7', aplica_convenio: false, ultima_actualizacion: '2024-01-05' },
-        { id: 4, servicio: 'Transporte Pesado', categoria: 'Especial', precio_base: 20000, precio_km: 850, precio_hora: 7500, disponibilidad: 'Diurno', aplica_convenio: true, ultima_actualizacion: '2024-01-12' },
-        { id: 5, servicio: 'Servicio Nocturno', categoria: 'Especial', precio_base: 10000, precio_km: 500, precio_hora: 4000, disponibilidad: 'Nocturno', aplica_convenio: true, ultima_actualizacion: '2024-01-08' },
-    ]);
+interface TipoPrdSrv {
+    id: number;
+    nombre_tipo_abono: string;
+    descripcion: string;
+    es_activo: boolean;
+    created: string;
+}
 
-    const [abonos] = useState<Abono[]>([
-        { id: 1, nombre: 'Abono Básico', tipo: 'Mensual', precio: 15000, duracion_dias: 30, vehiculos_incluidos: 5, descuento: 10 },
-        { id: 2, nombre: 'Abono Profesional', tipo: 'Mensual', precio: 28000, duracion_dias: 30, vehiculos_incluidos: 15, descuento: 15 },
-        { id: 3, nombre: 'Abono Empresarial', tipo: 'Trimestral', precio: 75000, duracion_dias: 90, vehiculos_incluidos: 30, descuento: 20 },
-        { id: 4, nombre: 'Abono Anual', tipo: 'Anual', precio: 250000, duracion_dias: 365, vehiculos_incluidos: 50, descuento: 25 },
-    ]);
+interface Props {
+    productos_servicios: ProductoServicio[];
+    tipos_prd_srv: TipoPrdSrv[];
+}
 
-    const [activeTab, setActiveTab] = useState<'servicios' | 'abonos'>('servicios');
-    const [filtroCategoria, setFiltroCategoria] = useState<string>('todas');
+export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: Props) {
+    const [productos, setProductos] = useState<ProductoServicio[]>(productos_servicios);
+    const [tipos, setTipos] = useState<TipoPrdSrv[]>(tipos_prd_srv);
+    const [tiposActivos, setTiposActivos] = useState<TipoPrdSrv[]>([]);
+    const [activeTab, setActiveTab] = useState<string>('');
+
+    useEffect(() => {
+        const tiposActivosFiltrados = tipos.filter(tipo => tipo.es_activo);
+        setTiposActivos(tiposActivosFiltrados);
+        
+        if (tiposActivosFiltrados.length > 0 && !activeTab) {
+            setActiveTab(tiposActivosFiltrados[0].nombre_tipo_abono);
+        }
+    }, [tipos]);
+
+    // Ordenar productos por ID (ascendente)
+    const productosOrdenados = [...productos].sort((a, b) => a.id - b.id);
+
+    const productosFiltrados = productosOrdenados.filter(
+        producto => producto.es_activo && 
+        tipos.find(tipo => tipo.id === producto.tipo_id)?.nombre_tipo_abono === activeTab
+    );
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('es-AR', {
@@ -51,348 +60,446 @@ export default function TarifasConsulta() {
         }).format(amount);
     };
 
-    const calcularEjemplo = (tarifa: Tarifa) => {
-        return tarifa.precio_base + (tarifa.precio_km * 50) + (tarifa.precio_hora * 2);
+    // Función para extraer información de vehículos del nombre del abono
+    const getVehiculosInfo = (nombre: string) => {
+        const matchRango = nombre.match(/ABONO\s+(\d+-\d+)/i);
+        if (matchRango) return matchRango[1];
+        
+        const matchRangoSimple = nombre.match(/(\d+-\d+)/);
+        if (matchRangoSimple) return matchRangoSimple[1];
+        
+        const matchPlus = nombre.match(/ABONO\s*\+\s*(\d+)/i);
+        if (matchPlus) return `+${matchPlus[1]}`;
+        
+        const matchPlusSimple = nombre.match(/\+\s*(\d+)/);
+        if (matchPlusSimple) return `+${matchPlusSimple[1]}`;
+        
+        const matchIndividual = nombre.match(/ABONO\s+(\d+)/i);
+        if (matchIndividual) return matchIndividual[1];
+        
+        const matchCualquierNumero = nombre.match(/(\d+)/);
+        if (matchCualquierNumero) return matchCualquierNumero[1];
+        
+        return 'Personalizado';
     };
 
-    return (
-        <AppLayout title="Tarifas (Consulta)">
-            <div className="mb-4">
-                <h1 className="text-3xl font-bold text-gray-900">
-                    Tarifas (Consulta)
-                </h1>
-                <p className="mt-1 text-gray-600 text-base">
-                    Consulta de tarifas y precios vigentes
-                </p>
-            </div>
+    const getNombreLimpio = (nombre: string) => {
+        return nombre.replace(/\s+/g, ' ').trim();
+    };
 
-            {/* Tabs */}
-            <div className="mb-6">
-                <div className="border-b border-gray-200">
-                    <nav className="flex -mb-px">
-                        <button
-                            onClick={() => setActiveTab('servicios')}
-                            className={`py-2 px-4 text-sm font-medium border-b-2 ${
-                                activeTab === 'servicios'
-                                    ? 'border-sat text-sat'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                            }`}
-                        >
-                            Servicios ({tarifas.length})
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('abonos')}
-                            className={`py-2 px-4 text-sm font-medium border-b-2 ${
-                                activeTab === 'abonos'
-                                    ? 'border-sat text-sat'
-                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                            }`}
-                        >
-                            Abonos ({abonos.length})
-                        </button>
-                    </nav>
-                </div>
-            </div>
-
-            {activeTab === 'servicios' ? (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
-                    {/* Filtros */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+    const renderServicios = () => {
+        return (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="p-4 md:p-6 border-b border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div>
-                            <h2 className="text-lg font-semibold text-gray-900 mb-1">
-                                Tarifas de Servicios
+                            <h2 className="text-lg md:text-xl font-semibold text-gray-900">
+                                {tipos.find(t => t.nombre_tipo_abono === activeTab)?.descripcion || 'Servicios'}
                             </h2>
-                            <p className="text-sm text-gray-600">
-                                Precios vigentes para todos los servicios
+                            <p className="text-sm text-gray-600 mt-1">
+                                {productosFiltrados.length} servicios disponibles
                             </p>
                         </div>
-                        <div className="flex gap-3">
-                            <select
-                                value={filtroCategoria}
-                                onChange={(e) => setFiltroCategoria(e.target.value)}
-                                className="px-3 py-2 text-sm border border-gray-300 rounded focus:ring-sat focus:border-sat"
-                            >
-                                <option value="todas">Todas las categorías</option>
-                                <option value="Básico">Básico</option>
-                                <option value="Standard">Standard</option>
-                                <option value="Premium">Premium</option>
-                                <option value="Especial">Especial</option>
-                            </select>
-                            <button className="px-4 py-2 bg-sat text-white text-sm rounded hover:bg-sat-600 transition-colors">
-                                Descargar Tarifario
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Calculator Info */}
-                    <div className="mb-6 p-4 bg-blue-50 rounded border border-blue-200">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                            <div>
-                                <h3 className="font-medium text-blue-800 mb-1">Calculadora de tarifas</h3>
-                                <p className="text-sm text-blue-700">
-                                    Los ejemplos muestran cálculo para 50km y 2 horas
-                                </p>
-                            </div>
-                            <div className="text-sm text-blue-800">
-                                Actualizado al 15/01/2024
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Desktop Table */}
-                    <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="py-3 px-4 text-left font-medium text-gray-700">Servicio</th>
-                                    <th className="py-3 px-4 text-left font-medium text-gray-700">Categoría</th>
-                                    <th className="py-3 px-4 text-left font-medium text-gray-700">Precio Base</th>
-                                    <th className="py-3 px-4 text-left font-medium text-gray-700">Por Km</th>
-                                    <th className="py-3 px-4 text-left font-medium text-gray-700">Por Hora</th>
-                                    <th className="py-3 px-4 text-left font-medium text-gray-700">Disponibilidad</th>
-                                    <th className="py-3 px-4 text-left font-medium text-gray-700">Aplica Convenio</th>
-                                    <th className="py-3 px-4 text-left font-medium text-gray-700">Ejemplo 50km/2h</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-200">
-                                {tarifas
-                                    .filter(t => filtroCategoria === 'todas' || t.categoria === filtroCategoria)
-                                    .map((tarifa) => (
-                                        <tr key={tarifa.id} className="hover:bg-gray-50">
-                                            <td className="py-3 px-4 font-medium">{tarifa.servicio}</td>
-                                            <td className="py-3 px-4">
-                                                <span className={`px-2 py-1 text-xs rounded-full ${
-                                                    tarifa.categoria === 'Básico' ? 'bg-green-100 text-green-800' :
-                                                    tarifa.categoria === 'Standard' ? 'bg-blue-100 text-blue-800' :
-                                                    tarifa.categoria === 'Premium' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-purple-100 text-purple-800'
-                                                }`}>
-                                                    {tarifa.categoria}
-                                                </span>
-                                            </td>
-                                            <td className="py-3 px-4 font-bold text-local">
-                                                {formatCurrency(tarifa.precio_base)}
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                {formatCurrency(tarifa.precio_km)}/km
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                {formatCurrency(tarifa.precio_hora)}/h
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                <span className={`px-2 py-1 text-xs rounded-full ${
-                                                    tarifa.disponibilidad === '24/7' ? 'bg-green-100 text-green-800' :
-                                                    tarifa.disponibilidad === 'Diurno' ? 'bg-yellow-100 text-yellow-800' :
-                                                    'bg-gray-100 text-gray-800'
-                                                }`}>
-                                                    {tarifa.disponibilidad}
-                                                </span>
-                                            </td>
-                                            <td className="py-3 px-4">
-                                                {tarifa.aplica_convenio ? (
-                                                    <span className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">Sí</span>
-                                                ) : (
-                                                    <span className="px-2 py-1 bg-gray-100 text-gray-800 text-xs rounded-full">No</span>
-                                                )}
-                                            </td>
-                                            <td className="py-3 px-4 font-bold">
-                                                {formatCurrency(calcularEjemplo(tarifa))}
-                                            </td>
-                                        </tr>
-                                    ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Mobile Cards */}
-                    <div className="md:hidden space-y-4">
-                        {tarifas
-                            .filter(t => filtroCategoria === 'todas' || t.categoria === filtroCategoria)
-                            .map((tarifa) => (
-                                <div key={tarifa.id} className="p-4 border border-gray-200 rounded-lg hover:border-sat transition-colors">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div>
-                                            <div className="font-medium text-gray-900">{tarifa.servicio}</div>
-                                            <div className="text-sm text-gray-600">ID: {tarifa.id}</div>
-                                        </div>
-                                        <div className="flex flex-col items-end gap-1">
-                                            <span className={`px-2 py-1 text-xs rounded-full ${
-                                                tarifa.categoria === 'Básico' ? 'bg-green-100 text-green-800' :
-                                                tarifa.categoria === 'Standard' ? 'bg-blue-100 text-blue-800' :
-                                                tarifa.categoria === 'Premium' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-purple-100 text-purple-800'
-                                            }`}>
-                                                {tarifa.categoria}
-                                            </span>
-                                            <span className={`px-2 py-1 text-xs rounded-full ${
-                                                tarifa.disponibilidad === '24/7' ? 'bg-green-100 text-green-800' :
-                                                tarifa.disponibilidad === 'Diurno' ? 'bg-yellow-100 text-yellow-800' :
-                                                'bg-gray-100 text-gray-800'
-                                            }`}>
-                                                {tarifa.disponibilidad}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-3 mb-4">
-                                        <div>
-                                            <div className="text-sm text-gray-600">Precio Base</div>
-                                            <div className="font-bold text-local">{formatCurrency(tarifa.precio_base)}</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-sm text-gray-600">Por Km</div>
-                                            <div className="font-medium">{formatCurrency(tarifa.precio_km)}/km</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-sm text-gray-600">Por Hora</div>
-                                            <div className="font-medium">{formatCurrency(tarifa.precio_hora)}/h</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-sm text-gray-600">Convenio</div>
-                                            <div className="font-medium">
-                                                {tarifa.aplica_convenio ? (
-                                                    <span className="text-green-600">Aplica</span>
-                                                ) : (
-                                                    <span className="text-gray-600">No aplica</span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="p-3 bg-gray-50 rounded border">
-                                        <div className="flex justify-between items-center">
-                                            <div className="text-sm font-medium text-gray-700">
-                                                Ejemplo (50km, 2h):
-                                            </div>
-                                            <div className="font-bold text-lg">
-                                                {formatCurrency(calcularEjemplo(tarifa))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
+                        <button className="px-4 py-2 bg-sat text-white text-sm rounded hover:bg-sat-600 transition-colors w-full sm:w-auto">
+                            Descargar Listado
+                        </button>
                     </div>
                 </div>
-            ) : (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
-                    <div className="mb-6">
-                        <h2 className="text-lg font-semibold text-gray-900 mb-1">
-                            Planes de Abono
-                        </h2>
-                        <p className="text-sm text-gray-600">
-                            Suscripciones mensuales y planes especiales
-                        </p>
-                    </div>
 
-                    {/* Abonos Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {abonos.map((abono) => (
-                            <div key={abono.id} className="border border-gray-200 rounded-lg hover:border-sat transition-colors overflow-hidden">
-                                <div className={`p-4 ${
-                                    abono.tipo === 'Anual' ? 'bg-purple-50 border-b border-purple-100' :
-                                    abono.tipo === 'Trimestral' ? 'bg-green-50 border-b border-green-100' :
-                                    'bg-blue-50 border-b border-blue-100'
-                                }`}>
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <h3 className="font-bold text-gray-900">{abono.nombre}</h3>
-                                            <p className="text-sm text-gray-600">{abono.tipo}</p>
-                                        </div>
-                                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded-full font-bold">
-                                            -{abono.descuento}%
-                                        </span>
+                {/* Cards de servicios - Responsive */}
+                <div className="p-4 md:p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                        {productosFiltrados.map((producto) => (
+                            <div key={producto.id} className="border border-gray-200 rounded-lg p-4 hover:border-sat transition-colors hover:shadow-md">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-gray-900 text-base md:text-lg">
+                                            {producto.nombre}
+                                        </h3>
+                                        <p className="text-xs md:text-sm text-gray-500 mt-1">
+                                            ID: #{producto.id}
+                                        </p>
                                     </div>
+                                    <span className={`px-2 py-1 rounded text-xs md:text-sm font-medium flex-shrink-0 ml-2 ${
+                                        producto.es_activo 
+                                            ? 'bg-green-100 text-green-800' 
+                                            : 'bg-red-100 text-red-800'
+                                    }`}>
+                                        {producto.es_activo ? 'Activo' : 'Inactivo'}
+                                    </span>
                                 </div>
-                                <div className="p-4">
-                                    <div className="text-center mb-4">
-                                        <div className="text-2xl font-bold text-local mb-1">
-                                            {formatCurrency(abono.precio)}
+                                
+                                {producto.descripcion && (
+                                    <div className="mb-3">
+                                        <p className="text-sm text-gray-600 line-clamp-2 md:line-clamp-3">
+                                            {producto.descripcion}
+                                        </p>
+                                    </div>
+                                )}
+                                
+                                <div className="pt-3 border-t border-gray-100">
+                                    <div className="flex justify-between items-center">
+                                        <div className="text-sm md:text-base font-medium text-gray-700">
+                                            Valor:
                                         </div>
-                                        <div className="text-sm text-gray-600">
-                                            por {abono.duracion_dias} días
+                                        <div className="font-bold text-local text-lg md:text-xl">
+                                            {formatCurrency(producto.valor)}
                                         </div>
                                     </div>
-                                    <div className="space-y-2 mb-4">
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Vehículos incluidos:</span>
-                                            <span className="font-medium">{abono.vehiculos_incluidos}</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Ahorro estimado:</span>
-                                            <span className="font-medium text-green-600">{abono.descuento}%</span>
-                                        </div>
-                                        <div className="flex justify-between text-sm">
-                                            <span className="text-gray-600">Periodicidad:</span>
-                                            <span className="font-medium">Renovable</span>
-                                        </div>
-                                    </div>
-                                    <button className="w-full px-3 py-2 bg-sat text-white text-sm rounded hover:bg-sat-600 transition-colors">
-                                        Seleccionar Plan
-                                    </button>
                                 </div>
                             </div>
                         ))}
                     </div>
+                </div>
+            </div>
+        );
+    };
 
-                    {/* Comparison */}
-                    <div className="mt-8 p-4 bg-gray-50 rounded border">
-                        <h3 className="font-medium text-gray-900 mb-3">Comparativa de Planes</h3>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm">
-                                <thead className="bg-white">
-                                    <tr>
-                                        <th className="py-2 px-3 text-left font-medium text-gray-700">Plan</th>
-                                        <th className="py-2 px-3 text-left font-medium text-gray-700">Precio/Día</th>
-                                        <th className="py-2 px-3 text-left font-medium text-gray-700">Costo por Vehículo</th>
-                                        <th className="py-2 px-3 text-left font-medium text-gray-700">Ahorro vs Individual</th>
-                                        <th className="py-2 px-3 text-left font-medium text-gray-700">Recomendado para</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200">
-                                    {abonos.map((abono) => {
-                                        const precioPorDia = abono.precio / abono.duracion_dias;
-                                        const costoPorVehiculo = abono.precio / abono.vehiculos_incluidos;
-                                        return (
-                                            <tr key={abono.id} className="bg-white hover:bg-gray-50">
-                                                <td className="py-2 px-3 font-medium">{abono.nombre}</td>
-                                                <td className="py-2 px-3">{formatCurrency(Math.round(precioPorDia))}/día</td>
-                                                <td className="py-2 px-3">{formatCurrency(Math.round(costoPorVehiculo))}/vehículo</td>
-                                                <td className="py-2 px-3">
-                                                    <span className="font-medium text-green-600">{abono.descuento}%</span>
-                                                </td>
-                                                <td className="py-2 px-3">
-                                                    {abono.vehiculos_incluidos <= 5 ? 'Pequeñas flotas' :
-                                                     abono.vehiculos_incluidos <= 15 ? 'Flotas medianas' :
-                                                     abono.vehiculos_incluidos <= 30 ? 'Empresas' : 'Corporaciones'}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
+    const renderAbonos = () => {
+        return (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="p-4 md:p-6 border-b border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h2 className="text-lg md:text-xl font-semibold text-gray-900">
+                                {tipos.find(t => t.nombre_tipo_abono === activeTab)?.descripcion || 'Abonos'}
+                            </h2>
+                            <p className="text-sm text-gray-600 mt-1">
+                                {productosFiltrados.length} planes de abono disponibles
+                            </p>
                         </div>
+                        <button className="px-4 py-2 bg-sat text-white text-sm rounded hover:bg-sat-600 transition-colors w-full sm:w-auto">
+                            Descargar Listado
+                        </button>
                     </div>
                 </div>
-            )}
 
-            {/* Help Section */}
-            <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
-                <h3 className="font-medium text-gray-900 mb-3">Información Importante</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="p-3 bg-blue-50 rounded border border-blue-100">
-                        <div className="font-medium text-blue-800 mb-1">Precios sin IVA</div>
-                        <div className="text-sm text-blue-700">
-                            Todos los precios mostrados no incluyen IVA (21%)
-                        </div>
+                {/* Cards de abonos - Responsive y atractivas */}
+                <div className="p-4 md:p-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                        {productosFiltrados.map((abono) => {
+                            const vehiculosInfo = getVehiculosInfo(abono.nombre);
+                            const nombreLimpio = getNombreLimpio(abono.nombre);
+                            
+                            // Determinar color basado en el tipo
+                            const getColorClase = () => {
+                                if (vehiculosInfo.includes('+') || vehiculosInfo.includes('151')) {
+                                    return {
+                                        bg: 'bg-gradient-to-r from-purple-50 to-purple-100',
+                                        border: 'border-purple-200',
+                                        text: 'text-purple-700'
+                                    };
+                                }
+                                if (vehiculosInfo.includes('-')) {
+                                    const [_, max] = vehiculosInfo.split('-').map(Number);
+                                    if (max <= 5) return { 
+                                        bg: 'bg-gradient-to-r from-blue-50 to-blue-100', 
+                                        border: 'border-blue-200', 
+                                        text: 'text-blue-700' 
+                                    };
+                                    if (max <= 15) return { 
+                                        bg: 'bg-gradient-to-r from-green-50 to-green-100', 
+                                        border: 'border-green-200', 
+                                        text: 'text-green-700' 
+                                    };
+                                    return { 
+                                        bg: 'bg-gradient-to-r from-orange-50 to-orange-100', 
+                                        border: 'border-orange-200', 
+                                        text: 'text-orange-700' 
+                                    };
+                                }
+                                return { 
+                                    bg: 'bg-gradient-to-r from-gray-50 to-gray-100', 
+                                    border: 'border-gray-200', 
+                                    text: 'text-gray-700' 
+                                };
+                            };
+                            
+                            const color = getColorClase();
+
+                            return (
+                                <div key={abono.id} className="border border-gray-200 rounded-lg overflow-hidden hover:border-sat transition-colors shadow-sm hover:shadow-md">
+                                    {/* Header con color */}
+                                    <div className={`p-4 ${color.bg} border-b ${color.border}`}>
+                                        <div className="flex justify-between items-start">
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-bold text-gray-900 text-base md:text-lg truncate">
+                                                    {nombreLimpio}
+                                                </h3>
+                                                <p className={`text-sm font-medium ${color.text} mt-1`}>
+                                                    {vehiculosInfo === 'Personalizado' ? 'Plan Personalizado' : `${vehiculosInfo} vehículos`}
+                                                </p>
+                                            </div>
+                                            <span className="px-2 py-1 bg-white text-gray-700 text-xs rounded-full font-bold border border-gray-300 flex-shrink-0">
+                                                #{abono.id}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Contenido */}
+                                    <div className="p-4">
+                                        {/* Precio destacado */}
+                                        <div className="text-center mb-4">
+                                            <div className="text-2xl md:text-3xl font-bold text-local mb-1">
+                                                {formatCurrency(abono.valor)}
+                                            </div>
+                                            <div className="text-sm text-gray-600">
+                                                por mes
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Detalles en grid */}
+                                        <div className="grid grid-cols-2 gap-3 mb-4">
+                                            {/* Vehículos */}
+                                            <div className="text-center bg-gray-50 rounded p-2 md:p-3">
+                                                <div className="text-xs md:text-sm text-gray-600 mb-1">Vehículos</div>
+                                                <div className="font-bold text-gray-900 text-base md:text-lg">
+                                                    {vehiculosInfo === 'Personalizado' ? 'Pers.' : vehiculosInfo}
+                                                </div>
+                                            </div>
+                                            
+                                            {/* Periodicidad */}
+                                            <div className="text-center bg-gray-50 rounded p-2 md:p-3">
+                                                <div className="text-xs md:text-sm text-gray-600 mb-1">Periodicidad</div>
+                                                <div className="font-bold text-gray-900 text-base md:text-lg flex items-center justify-center gap-1">
+                                                    <svg className="w-4 h-4 md:w-5 md:h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <span>Mensual</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        {/* Descripción si existe */}
+                                        {abono.descripcion && (
+                                            <div className="mb-4">
+                                                <div className="text-xs md:text-sm text-gray-600 mb-1">Descripción</div>
+                                                <div className="text-sm text-gray-800 line-clamp-2 md:line-clamp-3">
+                                                    {abono.descripcion}
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Estado */}
+                                        <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                                            <span className={`px-2 py-1 rounded text-xs md:text-sm font-medium ${
+                                                abono.es_activo 
+                                                    ? 'bg-green-100 text-green-800' 
+                                                    : 'bg-red-100 text-red-800'
+                                            }`}>
+                                                {abono.es_activo ? '✓ Activo' : '✗ Inactivo'}
+                                            </span>
+                                            <span className="text-xs text-gray-500 text-right hidden sm:block">
+                                                Actualizado: {new Date(abono.modified).toLocaleDateString('es-AR')}
+                                            </span>
+                                            <span className="text-xs text-gray-500 text-right sm:hidden">
+                                                {new Date(abono.modified).toLocaleDateString('es-AR')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
-                    <div className="p-3 bg-green-50 rounded border border-green-100">
-                        <div className="font-medium text-green-800 mb-1">Convenios activos</div>
-                        <div className="text-sm text-green-700">
-                            Algunos servicios aplican descuentos por convenio
+                </div>
+            </div>
+        );
+    };
+
+    const renderVistaGenerica = () => {
+        return (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+                <div className="p-4 md:p-6 border-b border-gray-200">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                            <h2 className="text-lg md:text-xl font-semibold text-gray-900">
+                                {tipos.find(t => t.nombre_tipo_abono === activeTab)?.nombre_tipo_abono}
+                            </h2>
+                            <p className="text-sm text-gray-600 mt-1">
+                                {productosFiltrados.length} productos disponibles
+                            </p>
                         </div>
+                        <button className="px-4 py-2 bg-sat text-white text-sm rounded hover:bg-sat-600 transition-colors w-full sm:w-auto">
+                            Descargar Listado
+                        </button>
                     </div>
-                    <div className="p-3 bg-purple-50 rounded border border-purple-100">
-                        <div className="font-medium text-purple-800 mb-1">Actualización mensual</div>
-                        <div className="text-sm text-purple-700">
-                            Las tarifas se revisan y actualizan mensualmente
+                </div>
+
+                {/* Cards genéricas */}
+                <div className="p-4 md:p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                        {productosFiltrados.map((producto) => (
+                            <div key={producto.id} className="border border-gray-200 rounded-lg p-4 hover:border-sat transition-colors hover:shadow-md">
+                                <div className="flex justify-between items-start mb-3">
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="font-semibold text-gray-900 text-base md:text-lg">
+                                            {producto.nombre}
+                                        </h3>
+                                        <p className="text-xs md:text-sm text-gray-500 mt-1">
+                                            ID: #{producto.id}
+                                        </p>
+                                    </div>
+                                    <span className={`px-2 py-1 rounded text-xs md:text-sm font-medium flex-shrink-0 ml-2 ${
+                                        producto.es_activo 
+                                            ? 'bg-green-100 text-green-800' 
+                                            : 'bg-red-100 text-red-800'
+                                    }`}>
+                                        {producto.es_activo ? 'Activo' : 'Inactivo'}
+                                    </span>
+                                </div>
+                                
+                                {producto.descripcion && (
+                                    <div className="mb-3">
+                                        <p className="text-sm text-gray-600 line-clamp-2 md:line-clamp-3">
+                                            {producto.descripcion}
+                                        </p>
+                                    </div>
+                                )}
+                                
+                                <div className="pt-3 border-t border-gray-100">
+                                    <div className="flex justify-between items-center">
+                                        <div className="text-sm md:text-base font-medium text-gray-700">
+                                            Valor:
+                                        </div>
+                                        <div className="font-bold text-local text-lg md:text-xl">
+                                            {formatCurrency(producto.valor)}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    const renderContenidoPorTipo = () => {
+        const tipoActivo = tipos.find(t => t.nombre_tipo_abono === activeTab);
+        if (!tipoActivo) return null;
+
+        const nombreTipo = tipoActivo.nombre_tipo_abono.toLowerCase();
+        const esTipoServicio = nombreTipo.includes('servicio') || nombreTipo.includes('transporte');
+        const esTipoAbono = nombreTipo.includes('abono') || nombreTipo.includes('plan');
+
+        if (esTipoServicio) {
+            return renderServicios();
+        } else if (esTipoAbono) {
+            return renderAbonos();
+        } else {
+            return renderVistaGenerica();
+        }
+    };
+
+    return (
+        <AppLayout title="Catálogo de Productos y Servicios">
+            <div className="mb-6">
+                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                    Catálogo de Productos y Servicios
+                </h1>
+                <p className="mt-1 md:mt-2 text-gray-600 text-sm md:text-base">
+                    Consulta todos los productos y servicios disponibles por categoría
+                </p>
+            </div>
+
+            {/* Tabs - SOLO 2 FILAS EN MÓVIL, 1 FILA EN WEB */}
+            <div className="mb-6">
+                <div className="border-b border-gray-200">
+                    {/* Versión móvil: 2 filas */}
+                    <div className="md:hidden">
+                        {/* Primera fila de tabs para móvil */}
+                        <nav className="flex -mb-px overflow-x-auto pb-0.5 mb-1">
+                            {tiposActivos.slice(0, Math.ceil(tiposActivos.length / 2)).map((tipo) => (
+                                <button
+                                    key={tipo.id}
+                                    onClick={() => setActiveTab(tipo.nombre_tipo_abono)}
+                                    className={`py-2 px-3 text-sm font-medium border-b-2 whitespace-nowrap flex-shrink-0 ${
+                                        activeTab === tipo.nombre_tipo_abono
+                                            ? 'border-sat text-sat'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    {tipo.nombre_tipo_abono} ({productos.filter(p => p.es_activo && p.tipo_id === tipo.id).length})
+                                </button>
+                            ))}
+                        </nav>
+                        
+                        {/* Segunda fila de tabs para móvil */}
+                        {tiposActivos.length > 3 && (
+                            <nav className="flex -mb-px overflow-x-auto pb-0.5">
+                                {tiposActivos.slice(Math.ceil(tiposActivos.length / 2)).map((tipo) => (
+                                    <button
+                                        key={tipo.id}
+                                        onClick={() => setActiveTab(tipo.nombre_tipo_abono)}
+                                        className={`py-2 px-3 text-sm font-medium border-b-2 whitespace-nowrap flex-shrink-0 ${
+                                            activeTab === tipo.nombre_tipo_abono
+                                                ? 'border-sat text-sat'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }`}
+                                    >
+                                        {tipo.nombre_tipo_abono} ({productos.filter(p => p.es_activo && p.tipo_id === tipo.id).length})
+                                    </button>
+                                ))}
+                            </nav>
+                        )}
+                    </div>
+                    
+                    {/* Versión web: 1 sola fila */}
+                    <div className="hidden md:block">
+                        <nav className="flex -mb-px">
+                            {tiposActivos.map((tipo) => (
+                                <button
+                                    key={tipo.id}
+                                    onClick={() => setActiveTab(tipo.nombre_tipo_abono)}
+                                    className={`py-3 px-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                                        activeTab === tipo.nombre_tipo_abono
+                                            ? 'border-sat text-sat'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                    }`}
+                                >
+                                    {tipo.nombre_tipo_abono} ({productos.filter(p => p.es_activo && p.tipo_id === tipo.id).length})
+                                </button>
+                            ))}
+                        </nav>
+                    </div>
+                </div>
+            </div>
+
+            {/* Contenido dinámico */}
+            {activeTab && renderContenidoPorTipo()}
+
+            {/* Sección de información - Mejorada */}
+            <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                <div className="p-4 md:p-6 border-b border-gray-200">
+                    <h3 className="text-base md:text-lg font-semibold text-gray-900">
+                        Información Importante
+                    </h3>
+                </div>
+                <div className="p-4 md:p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                        <div className="bg-blue-50 rounded-lg p-4 md:p-5 border border-blue-100">
+                            <div className="font-medium text-blue-800 text-sm md:text-base mb-1 md:mb-2">
+                                Precios sin IVA
+                            </div>
+                            <div className="text-sm text-blue-700">
+                                Todos los precios mostrados no incluyen IVA (21%)
+                            </div>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4 md:p-5 border border-green-100">
+                            <div className="font-medium text-green-800 text-sm md:text-base mb-1 md:mb-2">
+                                Productos activos
+                            </div>
+                            <div className="text-sm text-green-700">
+                                Solo se muestran productos marcados como activos
+                            </div>
+                        </div>
+                        <div className="bg-purple-50 rounded-lg p-4 md:p-5 border border-purple-100">
+                            <div className="font-medium text-purple-800 text-sm md:text-base mb-1 md:mb-2">
+                                Actualización
+                            </div>
+                            <div className="text-sm text-purple-700">
+                                Los productos se actualizan periódicamente
+                            </div>
                         </div>
                     </div>
                 </div>

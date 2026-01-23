@@ -184,10 +184,10 @@ export default function Dashboard() {
                             </div>
                             <div className="flex-1">
                                 <p className="font-medium text-gray-900 text-base">
-                                    Sistema activado
+                                    Nuevo Contrato generado
                                 </p>
                                 <p className="text-sm text-gray-600">
-                                    Intranet versión 2.0
+                                    Domvil S.A
                                 </p>
                             </div>
                             <div className="text-sm text-gray-500">Hoy</div>
@@ -199,10 +199,10 @@ export default function Dashboard() {
                             </div>
                             <div className="flex-1">
                                 <p className="font-medium text-gray-900 text-base">
-                                    Sistema listo
+                                    Recordatorios
                                 </p>
                                 <p className="text-sm text-gray-600">
-                                    Todos los módulos activos
+                                    5 recordatorios pendientes
                                 </p>
                             </div>
                             <div className="text-sm text-gray-500">Hoy</div>

@@ -350,52 +350,12 @@ export default function EquipoComercial() {
                                                 <button className="text-sat hover:text-sat-600 text-sm">
                                                     Detalles
                                                 </button>
-                                                <button className="text-green-600 hover:text-green-800 text-sm">
-                                                    Bonificar
-                                                </button>
                                             </div>
                                         </td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                    </div>
-                </div>
-
-                {/* Skills Distribution */}
-                <div className="mt-8 p-4 bg-blue-50 rounded border border-blue-200">
-                    <h3 className="font-medium text-blue-900 mb-3">Competencias del Equipo</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <h4 className="text-sm font-medium text-gray-700 mb-2">Skills Más Comunes</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {Array.from(new Set(miembros.flatMap(m => m.skills))).map((skill, index) => {
-                                    const count = miembros.filter(m => m.skills.includes(skill)).length;
-                                    return (
-                                        <div key={index} className="px-3 py-1.5 bg-white rounded border border-gray-200">
-                                            <div className="font-medium text-gray-900">{skill}</div>
-                                            <div className="text-xs text-gray-600">{count} miembros</div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-medium text-gray-700 mb-2">Proyectos Recientes</h4>
-                            <div className="space-y-2">
-                                {miembros.slice(0, 3).map((miembro) => (
-                                    <div key={miembro.id} className="p-3 bg-white rounded border border-gray-200">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <div className="font-medium text-gray-900">{miembro.ultimo_proyecto}</div>
-                                                <div className="text-xs text-gray-600">{miembro.nombre} {miembro.apellido}</div>
-                                            </div>
-                                            <Star size={14} className="text-yellow-500" />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>

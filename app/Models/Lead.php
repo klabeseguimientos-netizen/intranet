@@ -32,6 +32,16 @@ class Lead extends Model
         'modified_by',
     ];
 
+    public function origen()
+    {
+        return $this->belongsTo(OrigenContacto::class, 'origen_id');
+    }
+
+    public function estadoLead()
+    {
+        return $this->belongsTo(EstadoLead::class, 'estado_lead_id');
+    }
+
     public function empresaContactos()
     {
         return $this->hasMany(EmpresaContacto::class, 'lead_id');

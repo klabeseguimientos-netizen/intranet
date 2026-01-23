@@ -17,10 +17,10 @@ export default function Novedades() {
     const [novedades] = useState<Novedad[]>([
         { 
             id: 1, 
-            titulo: 'Nuevas tarifas a partir de Enero 2024', 
+            titulo: 'Nuevas tarifas a partir de Enero 2026', 
             contenido: 'Se actualizaron los precios de los servicios de transporte local y distribución urbana. Consulta las nuevas tarifas en la sección correspondiente.',
             categoria: 'Tarifas', 
-            fecha_publicacion: '2024-01-05', 
+            fecha_publicacion: '2026-01-05', 
             autor: 'María López', 
             importancia: 'alta',
             leido: true
@@ -30,7 +30,7 @@ export default function Novedades() {
             titulo: 'Sistema de reportes mejorado', 
             contenido: 'Hemos implementado mejoras en el sistema de generación de reportes comerciales. Ahora incluye gráficos interactivos y exportación en múltiples formatos.',
             categoria: 'Sistema', 
-            fecha_publicacion: '2024-01-10', 
+            fecha_publicacion: '2026-01-10', 
             autor: 'Juan Pérez', 
             importancia: 'media',
             leido: false
@@ -38,9 +38,9 @@ export default function Novedades() {
         { 
             id: 3, 
             titulo: 'Promoción especial primer trimestre', 
-            contenido: 'Descuento del 15% en servicios de logística express para nuevos clientes durante el primer trimestre 2024. Contactar con el área comercial para más información.',
+            contenido: 'Descuento del 15% en servicios de logística express para nuevos clientes durante el primer trimestre 2026.',
             categoria: 'Promociones', 
-            fecha_publicacion: '2024-01-15', 
+            fecha_publicacion: '2026-01-15', 
             autor: 'Carlos Gómez', 
             importancia: 'alta',
             leido: false
@@ -50,7 +50,7 @@ export default function Novedades() {
             titulo: 'Mantenimiento programado del sistema', 
             contenido: 'El próximo sábado 20 de Enero el sistema estará fuera de servicio por mantenimiento preventivo desde las 02:00 hasta las 06:00 hs.',
             categoria: 'Mantenimiento', 
-            fecha_publicacion: '2024-01-12', 
+            fecha_publicacion: '2026-01-12', 
             autor: 'Soporte Técnico', 
             importancia: 'media',
             leido: true
@@ -60,7 +60,7 @@ export default function Novedades() {
             titulo: 'Nuevo convenio con Transportes Rápidos S.A.', 
             contenido: 'Se ha firmado un nuevo convenio con descuento del 15% en todos los servicios. Los clientes de esta empresa ya pueden acceder a las condiciones especiales.',
             categoria: 'Convenios', 
-            fecha_publicacion: '2024-01-08', 
+            fecha_publicacion: '2026-01-08', 
             autor: 'Ana Rodríguez', 
             importancia: 'alta',
             leido: true
@@ -257,7 +257,7 @@ export default function Novedades() {
                 <div className="mt-8">
                     <h3 className="font-medium text-gray-900 mb-3">Archivo de Novedades</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {['2024-01', '2023-12', '2023-11'].map((mes) => (
+                        {['2026-01', '2026-12', '2026-11'].map((mes) => (
                             <button
                                 key={mes}
                                 className="p-4 bg-gray-50 rounded border border-gray-200 hover:border-sat transition-colors text-left"
@@ -270,28 +270,6 @@ export default function Novedades() {
                                 </div>
                             </button>
                         ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Subscription */}
-            <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4 md:p-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h3 className="font-medium text-gray-900 mb-1">Recibir notificaciones</h3>
-                        <p className="text-sm text-gray-600">
-                            Suscríbete para recibir novedades por email
-                        </p>
-                    </div>
-                    <div className="flex gap-3">
-                        <input
-                            type="email"
-                            placeholder="tu@email.com"
-                            className="px-3 py-2 text-sm border border-gray-300 rounded focus:ring-sat focus:border-sat"
-                        />
-                        <button className="px-4 py-2 bg-local text-white text-sm rounded hover:bg-local-600 transition-colors">
-                            Suscribirse
-                        </button>
                     </div>
                 </div>
             </div>

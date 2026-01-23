@@ -165,17 +165,6 @@ export default function CambioRazonSocial() {
                         </div>
                     </div>
 
-                    {/* Documentación requerida */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-                        <h3 className="font-medium text-blue-800 mb-2 text-sm">Documentación requerida:</h3>
-                        <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
-                            <li>Estatuto social actualizado</li>
-                            <li>Constancia de inscripción en AFIP</li>
-                            <li>Acta de asamblea (si aplica)</li>
-                            <li>Certificado de vigencia de personería jurídica</li>
-                            <li>Constancia de CUIT actualizada</li>
-                        </ul>
-                    </div>
 
                     {/* Botones */}
                     <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">

@@ -17,11 +17,11 @@ interface Licencia {
 
 export default function Licencias() {
     const [licencias] = useState<Licencia[]>([
-        { id: 1, empleado: 'María López', tipo: 'Vacaciones', fecha_inicio: '2024-02-01', fecha_fin: '2024-02-15', dias_totales: 15, dias_restantes: 15, motivo: 'Vacaciones anuales', estado: 'Aprobada', fecha_solicitud: '2024-01-10' },
-        { id: 2, empleado: 'Juan Pérez', tipo: 'Enfermedad', fecha_inicio: '2024-01-20', fecha_fin: '2024-01-25', dias_totales: 5, dias_restantes: 0, motivo: 'Gripe con certificado médico', estado: 'Finalizada', fecha_solicitud: '2024-01-19' },
-        { id: 3, empleado: 'Carlos Gómez', tipo: 'Estudio', fecha_inicio: '2024-03-01', fecha_fin: '2024-03-01', dias_totales: 1, dias_restantes: 1, motivo: 'Examen final', estado: 'Pendiente', fecha_solicitud: '2024-01-18' },
-        { id: 4, empleado: 'Ana Rodríguez', tipo: 'Maternidad', fecha_inicio: '2024-04-01', fecha_fin: '2024-07-31', dias_totales: 120, dias_restantes: 120, motivo: 'Licencia por maternidad', estado: 'Programada', fecha_solicitud: '2024-01-15' },
-        { id: 5, empleado: 'Luis Martínez', tipo: 'Vacaciones', fecha_inicio: '2024-01-10', fecha_fin: '2024-01-12', dias_totales: 3, dias_restantes: 0, motivo: 'Descanso', estado: 'Finalizada', fecha_solicitud: '2024-01-05' },
+        { id: 1, empleado: 'María López', tipo: 'Vacaciones', fecha_inicio: '2026-02-01', fecha_fin: '2026-02-15', dias_totales: 15, dias_restantes: 15, motivo: 'Vacaciones anuales', estado: 'Aprobada', fecha_solicitud: '2026-01-10' },
+        { id: 2, empleado: 'Juan Pérez', tipo: 'Enfermedad', fecha_inicio: '2026-01-20', fecha_fin: '2026-01-25', dias_totales: 5, dias_restantes: 0, motivo: 'Gripe con certificado médico', estado: 'Finalizada', fecha_solicitud: '2026-01-19' },
+        { id: 3, empleado: 'Carlos Gómez', tipo: 'Estudio', fecha_inicio: '2026-03-01', fecha_fin: '2026-03-01', dias_totales: 1, dias_restantes: 1, motivo: 'Examen final', estado: 'Pendiente', fecha_solicitud: '2026-01-18' },
+        { id: 4, empleado: 'Ana Rodríguez', tipo: 'Maternidad', fecha_inicio: '2026-04-01', fecha_fin: '2026-07-31', dias_totales: 120, dias_restantes: 120, motivo: 'Licencia por maternidad', estado: 'Programada', fecha_solicitud: '2026-01-15' },
+        { id: 5, empleado: 'Luis Martínez', tipo: 'Vacaciones', fecha_inicio: '2026-01-10', fecha_fin: '2026-01-12', dias_totales: 3, dias_restantes: 0, motivo: 'Descanso', estado: 'Finalizada', fecha_solicitud: '2026-01-05' },
     ]);
 
     const [filtroEstado, setFiltroEstado] = useState<string>('todos');
@@ -215,16 +215,6 @@ export default function Licencias() {
                                             <button className="text-sat hover:text-sat-600 text-sm">
                                                 Ver
                                             </button>
-                                            {licencia.estado === 'Pendiente' && (
-                                                <>
-                                                    <button className="text-green-600 hover:text-green-800 text-sm">
-                                                        Aprobar
-                                                    </button>
-                                                    <button className="text-red-600 hover:text-red-800 text-sm">
-                                                        Rechazar
-                                                    </button>
-                                                </>
-                                            )}
                                         </div>
                                     </td>
                                 </tr>
@@ -275,7 +265,7 @@ export default function Licencias() {
 
                 {/* Vacation Balance */}
                 <div className="mt-8 p-4 bg-blue-50 rounded border border-blue-200">
-                    <h3 className="font-medium text-blue-900 mb-3">Balance de Vacaciones 2024</h3>
+                    <h3 className="font-medium text-blue-900 mb-3">Balance de Vacaciones 2026</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="p-3 bg-white rounded border">
                             <div className="text-sm text-gray-600 mb-1">Días asignados por ley</div>

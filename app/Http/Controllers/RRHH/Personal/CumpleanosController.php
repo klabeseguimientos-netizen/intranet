@@ -1,14 +1,35 @@
 <?php
+// app/Http/Controllers/RRHH/Personal/CumpleanosController.php
 
-namespace App\Http\Controllers\rrhh\Personal;
+namespace App\Http\Controllers\RRHH\Personal;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Models\Personal;
 
 class CumpleanosController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        return Inertia::render('RRHH/Personal/Cumpleanos');
+        // Obtener personal con fecha de nacimiento válida
+        $personal = Personal::whereNotNull('fecha_nacimiento')
+            ->whereNull('deleted_at')
+            ->orderByRaw("
+                CASE 
+                    WHEN MONTH(fecha_nacimiento) > MONTH(CURRENT_DATE()) 
+                    OR (MONTH(fecha_nacimiento) = MONTH(CURRENT_DATE()) AND DAY(fecha_nacimiento) >= DAY(CURRENT_DATE()))
+                    THEN 0 
+                    ELSE 1 
+                END,
+                MONTH(fecha_nacimiento),
+                DAY(fecha_nacimiento)
+            ")
+            ->get();
+        
+        return Inertia::render('RRHH/Personal/Cumpleanos', [
+            'personal' => $personal,
+            'filtros' => $request->only(['mes', 'departamento']),
+        ]);
     }
 }
