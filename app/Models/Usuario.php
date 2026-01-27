@@ -47,11 +47,11 @@ class Usuario extends Authenticatable
     // Agregar accessor para rol_nombre
     protected $appends = ['rol_nombre'];
     
-    // Sobrescribir el campo de identificación
-    public function getAuthIdentifierName()
-    {
-        return 'nombre_usuario';
-    }
+    // IMPORTANTE: Comentar o eliminar esta línea para que auth()->id() devuelva el ID numérico
+    // public function getAuthIdentifierName()
+    // {
+    //     return 'nombre_usuario';
+    // }
     
     // Relaciones
     public function rol()

@@ -1,6 +1,4 @@
-
 @import 'tailwindcss';
-
 /* Variables CSS personalizadas */
 :root {
   /* Colores LocalSat */
@@ -15,7 +13,6 @@
   --color-local-700: #242425;
   --color-local-800: #181819;
   --color-local-900: #0C0C0C;
-  
   --color-sat: #FF6600;        /* RGB 255 102 0 */
   --color-sat-50: #FFF5EF;
   --color-sat-100: #FFEBDE;
@@ -27,25 +24,21 @@
   --color-sat-700: #993D00;
   --color-sat-800: #662900;
   --color-sat-900: #331400;
-  
   /* Colores base mejorados */
   --color-background: #ffffff;
   --color-foreground: #1a202c;
   --color-muted: #718096;
   --color-border: #e2e8f0;
 }
-
 /* Aplicar colores personalizados con @theme - SÍNTAXIS CORRECTA v4 */
 @theme {
   /* Fuentes */
   --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  
   /* Radios */
   --radius-sm: 0.25rem;
   --radius-md: 0.375rem;
   --radius-lg: 0.5rem;
   --radius-xl: 0.75rem;
-  
   /* Colores primarios usando LocalSat */
   --color-primary: var(--color-local);
   --color-primary-50: var(--color-local-50);
@@ -58,7 +51,6 @@
   --color-primary-700: var(--color-local-700);
   --color-primary-800: var(--color-local-800);
   --color-primary-900: var(--color-local-900);
-  
   /* Colores acento usando SAT */
   --color-accent: var(--color-sat);
   --color-accent-50: var(--color-sat-50);
@@ -71,34 +63,29 @@
   --color-accent-700: var(--color-sat-700);
   --color-accent-800: var(--color-sat-800);
   --color-accent-900: var(--color-sat-900);
-  
   /* Colores base */
   --color-background: var(--color-background);
   --color-foreground: var(--color-foreground);
   --color-muted: var(--color-muted);
   --color-muted-foreground: #4a5568;
   --color-border: var(--color-border);
-  
   /* Estados */
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
   --color-info: #3b82f6;
 }
-
 /* Estilos base */
 @layer base {
   * {
     border-color: var(--color-border);
   }
-
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
   }
 }
-
 /* ========== CLASES UTILITARIAS LOCALSAT ========== */
 @layer utilities {
   /* Colores Local */
@@ -107,173 +94,119 @@
   .border-local { border-color: var(--color-local); }
   .fill-local { fill: var(--color-local); }
   .stroke-local { stroke: var(--color-local); }
-  
   .text-local-50 { color: var(--color-local-50); }
   .bg-local-50 { background-color: var(--color-local-50); }
-  
   .text-local-100 { color: var(--color-local-100); }
   .bg-local-100 { background-color: var(--color-local-100); }
-  
   .text-local-200 { color: var(--color-local-200); }
   .bg-local-200 { background-color: var(--color-local-200); }
-  
   .text-local-300 { color: var(--color-local-300); }
   .bg-local-300 { background-color: var(--color-local-300); }
-  
   .text-local-400 { color: var(--color-local-400); }
   .bg-local-400 { background-color: var(--color-local-400); }
-  
   .text-local-500 { color: var(--color-local-500); }
   .bg-local-500 { background-color: var(--color-local-500); }
-  
   .text-local-600 { color: var(--color-local-600); }
   .bg-local-600 { background-color: var(--color-local-600); }
-  
   .text-local-700 { color: var(--color-local-700); }
   .bg-local-700 { background-color: var(--color-local-700); }
-  
   .text-local-800 { color: var(--color-local-800); }
   .bg-local-800 { background-color: var(--color-local-800); }
-  
   .text-local-900 { color: var(--color-local-900); }
   .bg-local-900 { background-color: var(--color-local-900); }
-  
   /* Colores SAT */
   .text-sat { color: var(--color-sat); }
   .bg-sat { background-color: var(--color-sat); }
   .border-sat { border-color: var(--color-sat); }
   .fill-sat { fill: var(--color-sat); }
   .stroke-sat { stroke: var(--color-sat); }
-  
   .text-sat-50 { color: var(--color-sat-50); }
   .bg-sat-50 { background-color: var(--color-sat-50); }
-  
   .text-sat-100 { color: var(--color-sat-100); }
   .bg-sat-100 { background-color: var(--color-sat-100); }
-  
   .text-sat-200 { color: var(--color-sat-200); }
   .bg-sat-200 { background-color: var(--color-sat-200); }
-  
   .text-sat-300 { color: var(--color-sat-300); }
   .bg-sat-300 { background-color: var(--color-sat-300); }
-  
   .text-sat-400 { color: var(--color-sat-400); }
   .bg-sat-400 { background-color: var(--color-sat-400); }
-  
   .text-sat-500 { color: var(--color-sat-500); }
   .bg-sat-500 { background-color: var(--color-sat-500); }
-  
   .text-sat-600 { color: var(--color-sat-600); }
   .bg-sat-600 { background-color: var(--color-sat-600); }
-  
   .text-sat-700 { color: var(--color-sat-700); }
   .bg-sat-700 { background-color: var(--color-sat-700); }
-  
   .text-sat-800 { color: var(--color-sat-800); }
   .bg-sat-800 { background-color: var(--color-sat-800); }
-  
   .text-sat-900 { color: var(--color-sat-900); }
   .bg-sat-900 { background-color: var(--color-sat-900); }
-  
   /* Hover effects */
   .hover\:text-local:hover { color: var(--color-local); }
   .hover\:bg-local:hover { background-color: var(--color-local); }
   .hover\:border-local:hover { border-color: var(--color-local); }
-  
   .hover\:text-sat:hover { color: var(--color-sat); }
   .hover\:bg-sat:hover { background-color: var(--color-sat); }
   .hover\:border-sat:hover { border-color: var(--color-sat); }
-  
   /* Focus rings */
   .focus\:ring-local:focus { --tw-ring-color: var(--color-local); }
   .focus\:ring-sat:focus { --tw-ring-color: var(--color-sat); }
-  
   /* Active states */
   .active\:bg-local:active { background-color: var(--color-local); }
   .active\:bg-sat:active { background-color: var(--color-sat); }
 }
-
 /* ========== ESTILOS ESPECÍFICOS PARA SIDEBAR ========== */
 .sidebar-dark {
   background: var(--color-local);
   color: white;
 }
-
 .sidebar-item {
   transition: all 0.2s ease;
   border-left: 4px solid transparent;
 }
-
 .sidebar-item:hover {
   background: rgba(255, 255, 255, 0.05);
   border-left-color: var(--color-sat);
 }
-
 .sidebar-item.active {
   background: rgba(255, 102, 0, 0.1);
   border-left-color: var(--color-sat);
 }
-
 .sidebar-subitem {
   color: rgba(255, 255, 255, 0.8);
   transition: all 0.2s ease;
 }
-
 .sidebar-subitem:hover {
   color: white;
   background: rgba(255, 102, 0, 0.05);
 }
-
 /* ========== MEJORAS DE CONTRASTE ========== */
-.contrast-text {
-  color: #1a202c; /* Muy oscuro para buen contraste */
-}
-
-.contrast-bg {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-}
-
 /* ========== TRANSICIONES ========== */
 .transition-all {
   transition-property: all;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
-
 .transition-colors {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   transition-duration: 150ms;
 }
-
 /* ========== SOMBRAS ========== */
 .shadow-custom {
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
-
 .shadow-custom-lg {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
-
 /* ========== RESPONSIVE HELPERS ========== */
 @media (max-width: 768px) {
-  .mobile-hidden {
-    display: none;
   }
-  
-  .mobile-block {
-    display: block;
-  }
-}
-
 /* ========== ESTILOS ESPECÍFICOS PARA LOGIN ========== */
 @layer utilities {
   /* Animación de entrada */
   .animate-fadeIn {
     animation: fadeIn 0.5s ease-out;
   }
-
   @keyframes fadeIn {
     from {
       opacity: 0;
@@ -284,18 +217,15 @@
       transform: translateY(0);
     }
   }
-
   /* Spinner personalizado */
   .animate-spin {
     animation: spin 1s linear infinite;
   }
-
   @keyframes spin {
     to {
       transform: rotate(360deg);
     }
   }
-
   /* Patrones de fondo para login */
   .bg-pattern-diamond {
     background-image: 
@@ -306,55 +236,39 @@
     background-size: 60px 60px;
     background-position: 0 0, 0 30px, 30px -30px, -30px 0px;
   }
-
   /* Efecto de vidrio mejorado */
-  .glass-effect {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
   }
-}
-
 /* ========== ESTILOS RESPONSIVE MEJORADOS PARA LOGIN ========== */
 @media (max-width: 640px) {
   .login-card-mobile {
     border-radius: 0.75rem;
     margin: 0 1rem;
   }
-  
   .login-header-mobile {
     padding: 1.5rem;
   }
-  
   .login-form-mobile {
     padding: 1.5rem;
   }
-  
   .login-title-mobile {
     font-size: 1.5rem;
   }
 }
-
 @media (max-width: 375px) {
   .login-card-xs {
     border-radius: 0.5rem;
   }
-  
   .login-header-xs {
     padding: 1.25rem;
   }
-  
   .login-form-xs {
     padding: 1.25rem;
   }
-  
   .login-button-xs {
     padding: 0.75rem;
     font-size: 0.875rem;
   }
 }
-
 /* ========== MEJORAS DE ACCESIBILIDAD ========== */
 @media (prefers-reduced-motion: reduce) {
   .animate-fadeIn,
@@ -363,13 +277,11 @@
     transition: none;
   }
 }
-
 /* ========== ESTILOS DE FOCO MEJORADOS ========== */
 .focus-visible-sat:focus-visible {
   outline: 2px solid var(--color-sat);
   outline-offset: 2px;
 }
-
 /* ========== ESTILOS PARA INPUTS DESHABILITADOS ========== */
 input:disabled, button:disabled {
   opacity: 0.6;
@@ -386,7 +298,6 @@ input:disabled, button:disabled {
         opacity: 0.1;
     }
 }
-
 @keyframes shine {
     0% {
         background-position: -200% center;
@@ -395,7 +306,6 @@ input:disabled, button:disabled {
         background-position: 200% center;
     }
 }
-
 @keyframes pulse-glow {
     0%, 100% {
         box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
@@ -404,11 +314,9 @@ input:disabled, button:disabled {
         box-shadow: 0 0 40px rgba(59, 130, 246, 0.8);
     }
 }
-
 .animate-float {
     animation: float 3s ease-in-out infinite;
 }
-
 .animate-shine {
     background: linear-gradient(
         90deg,
@@ -419,23 +327,18 @@ input:disabled, button:disabled {
     background-size: 200% 100%;
     animation: shine 2s linear infinite;
 }
-
 .animate-pulse-glow {
     animation: pulse-glow 2s ease-in-out infinite;
 }
-
 .animate-spin-slow {
     animation: spin 3s linear infinite;
 }
-
 .animate-fade-in {
     animation: fade-in 0.5s ease-out forwards;
 }
-
 .animate-slide-up {
     animation: slide-up 0.8s ease-out 0.3s both;
 }
-
 @keyframes fade-in {
     from {
         opacity: 0;
@@ -446,7 +349,6 @@ input:disabled, button:disabled {
         transform: translateY(0);
     }
 }
-
 @keyframes slide-up {
     from {
         opacity: 0;
@@ -468,7 +370,6 @@ input:disabled, button:disabled {
         transform: translateY(0);
     }
 }
-
 @keyframes pulse-subtle {
     0%, 100% {
         opacity: 1;
@@ -477,43 +378,35 @@ input:disabled, button:disabled {
         opacity: 0.8;
     }
 }
-
 .animate-fade-in-up {
     animation: fade-in-up 0.6s ease-out;
 }
-
 .animate-fade-in {
     animation: fade-in-up 0.4s ease-out;
 }
-
 .animate-pulse-subtle {
     animation: pulse-subtle 2s ease-in-out infinite;
 }
-
 /* Transiciones suaves */
 .transition-all {
     transition-property: all;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 300ms;
 }
-
 /* resources/css/app.css */
 /* LocalSat */
 .bg-local-primary { background-color: #3b3b3d; }
 .bg-local-secondary { background-color: #fa6400; }
 .text-local-primary { color: #3b3b3d; }
 .text-local-secondary { color: #fa6400; }
-
 /* SmartSat */
 .bg-smart-primary { background-color: #3b3b3d; }
 .bg-smart-secondary { background-color: #eb9b11; }
 .text-smart-primary { color: #3b3b3d; }
 .text-smart-secondary { color: #eb9b11; }
-
 /* 360 (usa LocalSat colors) */
 .bg-360-primary { background-color: #3b3b3d; }
 .bg-360-secondary { background-color: #fa6400; }
-
 /* Animaciones básicas */
 @keyframes fade-in-up {
     from {
@@ -525,15 +418,12 @@ input:disabled, button:disabled {
         transform: translateY(0);
     }
 }
-
 .animate-fade-in-up {
     animation: fade-in-up 0.6s ease-out;
 }
-
 .animate-pulse {
     animation: pulse 1.5s ease-in-out infinite;
 }
-
 @keyframes pulse {
     0%, 100% {
         opacity: 1;
@@ -541,4 +431,15 @@ input:disabled, button:disabled {
     50% {
         opacity: 0.7;
     }
+}
+@keyframes progress {
+    0% {
+        width: 100%;
+    }
+    100% {
+        width: 0%;
+    }
+}
+.animate-progress {
+    animation: progress 1s linear forwards;
 }

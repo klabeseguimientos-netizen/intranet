@@ -32,4 +32,8 @@ class Personal extends Model
     {
         return $this->belongsTo(TipoPersonal::class, 'tipo_personal_id');
     }
+        public function tecnico()
+    {
+        return $this->hasOne(Tecnico::class, 'personal_id');
+    }
 }

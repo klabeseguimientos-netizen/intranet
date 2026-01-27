@@ -91,3 +91,34 @@ declare module '@inertiajs/react' {
         [key: string]: any;
     }
 }
+
+declare module 'leaflet' {
+    export class Marker {
+        constructor(latlng: any, options?: any);
+        addTo(map: any): this;
+    }
+    
+    export class TileLayer {
+        constructor(url: string, options?: any);
+        addTo(map: any): this;
+    }
+    
+    export class Map {
+        constructor(element: string | HTMLElement, options?: any);
+        setView(latlng: any, zoom: number): this;
+    }
+    
+    export namespace Icon {
+        interface DefaultOptions {
+            iconRetinaUrl?: string;
+            iconUrl?: string;
+            shadowUrl?: string;
+        }
+        
+        class Default {
+            static mergeOptions(options: DefaultOptions): void;
+        }
+    }
+    
+    export function map(element: string | HTMLElement, options?: any): Map;
+}

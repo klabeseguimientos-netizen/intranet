@@ -1,3 +1,4 @@
+// SidebarNav.tsx - Versión limpia
 import React, { useState } from 'react';
 import { Link } from '@inertiajs/react';
 import { 
@@ -19,6 +20,13 @@ import {
 interface SidebarNavProps {
     className?: string;
     collapsed?: boolean;
+    auth?: {
+        user?: {
+            id: number;
+            rol_nombre: string;
+            [key: string]: any;
+        };
+    };
 }
 
 interface NavItem {
@@ -28,14 +36,12 @@ interface NavItem {
     icon?: React.ReactNode;
     children?: NavItem[];
     badge?: number;
-    role?: 'admin' | 'comercial' | 'operativo' | 'rrhh';
+    visibleForRoles?: string[];
+    visibleForUsers?: number[];
 }
 
-export default function SidebarNav({ className = '' }: SidebarNavProps) {
-    // Estado inicial: NADA expandido por defecto
-    const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({
-        // Todos false inicialmente
-    });
+export default function SidebarNav({ className = '', auth }: SidebarNavProps) {
+    const [expandedItems, setExpandedItems] = useState<Record<string, boolean>>({});
 
     const toggleItem = (id: string) => {
         setExpandedItems(prev => ({
@@ -44,13 +50,16 @@ export default function SidebarNav({ className = '' }: SidebarNavProps) {
         }));
     };
 
+    const userData = auth?.user;
+    const userId = userData?.id;
+    const userRole = userData?.rol_nombre;
+
     const navigation: NavItem[] = [
-        // CONFIGURACIÓN DEL SISTEMA (Solo para administradores)
         {
             id: 'configuracion',
             name: 'Configuración',
             icon: <Settings size={16} />,
-            role: 'admin',
+            visibleForRoles: ['Root', 'Administrador'],
             children: [
                 {
                     id: 'parametros-generales',
@@ -88,13 +97,11 @@ export default function SidebarNav({ className = '' }: SidebarNavProps) {
                 }
             ]
         },
-
-        // CONDICIONES COMERCIALES (Para comerciales)
         {
             id: 'condiciones-comerciales',
             name: 'Cond Comerciales',
             icon: <FileText size={16} />,
-            role: 'comercial',
+            visibleForRoles: ['Comercial', 'Supervisor', 'Administrador', 'Root'],
             children: [
                 { id: 'tarifas-consulta', name: 'Tarifas (consulta)', href: '/comercial/tarifas', icon: <Eye size={14} /> },
                 { id: 'convenios-vigentes', name: 'Convenios vigentes', href: '/comercial/convenios', icon: <FileCheck size={14} /> },
@@ -112,13 +119,11 @@ export default function SidebarNav({ className = '' }: SidebarNavProps) {
                 { id: 'reenvios-activos', name: 'Reenvíos activos', href: '/comercial/reenvios', icon: <Mail size={14} /> },
             ]
         },
-
-        // GESTIÓN COMERCIAL
         {
             id: 'gestion-comercial',
             name: 'Gestión Comercial',
             icon: <Briefcase size={16} />,
-            role: 'comercial',
+            visibleForRoles: ['Comercial', 'Supervisor', 'Administrador', 'Root'],
             children: [
                 { id: 'actividad', name: 'Actividad', href: '/comercial/actividad', icon: <Bell size={14} /> },
                 { id: 'contactos', name: 'Contactos', href: '/comercial/contactos', icon: <Users size={14} /> },
@@ -138,13 +143,32 @@ export default function SidebarNav({ className = '' }: SidebarNavProps) {
                 { id: 'prospectos', name: 'Prospectos', href: '/comercial/prospectos', icon: <Target size={14} /> },
             ]
         },
-
-        // RECURSOS HUMANOS
+        {
+            id: 'estadisticas',
+            name: 'Estadísticas',
+            icon: <BarChart size={16} />,
+            visibleForRoles: ['Administrador'],
+            visibleForUsers: [3, 5],
+            children: [
+                { 
+                    id: 'comercial-grupal', 
+                    name: 'Desempeño Grupal', 
+                    href: '/estadisticas/comercial-grupal', 
+                    icon: <Users size={14} /> 
+                },
+                { 
+                    id: 'comercial-individual', 
+                    name: 'Rendimiento Individual', 
+                    href: '/estadisticas/comercial-individual', 
+                    icon: <User size={14} /> 
+                },
+            ]
+        },
         {
             id: 'rrhh',
             name: 'Recursos Humanos',
             icon: <Users size={16} />,
-            role: 'rrhh',
+            visibleForRoles: ['Comercial', 'Supervisor', 'Administrador', 'Root'],
             children: [
                 {
                     id: 'personal',
@@ -169,6 +193,22 @@ export default function SidebarNav({ className = '' }: SidebarNavProps) {
         }
     ];
 
+    const shouldShowItem = (item: NavItem): boolean => {
+        if (!userId || !userRole) return false;
+        
+        if (item.visibleForUsers && !item.visibleForUsers.includes(userId)) {
+            return false;
+        }
+        
+        if (item.visibleForRoles && !item.visibleForRoles.includes(userRole)) {
+            return false;
+        }
+        
+        return true;
+    };
+
+    const filteredNavigation = navigation.filter(item => shouldShowItem(item));
+
     const renderNavItem = (item: NavItem, level = 0, parentId?: string): React.ReactNode => {
         const hasChildren = item.children && item.children.length > 0;
         const hasNestedChildren = item.children?.some(child => child.children);
@@ -178,11 +218,9 @@ export default function SidebarNav({ className = '' }: SidebarNavProps) {
         const isSecondLevel = level === 1;
         const isThirdLevel = level >= 2;
 
-        // Si es un item con hijos anidados (como "Parámetros generales" o "Personal")
         if (hasNestedChildren) {
             return (
                 <div key={item.id} className="w-full">
-                    {/* Botón para expandir/colapsar el item con hijos anidados */}
                     <button
                         onClick={() => toggleItem(item.id)}
                         className={`flex items-center justify-between w-full px-4 py-3 text-sm transition-all duration-200 group sidebar-item
@@ -211,17 +249,14 @@ export default function SidebarNav({ className = '' }: SidebarNavProps) {
                         />
                     </button>
                     
-                    {/* Contenido expandido - aquí van los hijos anidados */}
                     {isExpanded && (
                         <div className={`${isSecondLevel ? 'ml-8 border-l border-gray-700' : isThirdLevel ? 'ml-12 border-l border-gray-600' : ''}`}>
                             <div className="py-2">
                                 {item.children?.map((child: NavItem) => (
                                     <div key={child.id}>
-                                        {/* Si este hijo también tiene hijos (tercer nivel) */}
                                         {child.children ? (
                                             renderNavItem(child, level + 1, item.id)
                                         ) : (
-                                            // Hijo directo (enlace)
                                             <Link
                                                 href={child.href || '#'}
                                                 className="flex items-center px-4 py-2.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 transition-colors sidebar-subitem ml-4"
@@ -243,7 +278,6 @@ export default function SidebarNav({ className = '' }: SidebarNavProps) {
             );
         }
 
-        // Si es un item normal con hijos directos (sin anidación adicional)
         if (hasChildren) {
             return (
                 <div key={item.id} className="w-full">
@@ -275,7 +309,6 @@ export default function SidebarNav({ className = '' }: SidebarNavProps) {
                         />
                     </button>
                     
-                    {/* Hijos directos (segundo nivel) */}
                     {isExpanded && (
                         <div className={`${isSecondLevel ? 'ml-8 border-l border-gray-700' : ''}`}>
                             <div className="py-1">
@@ -300,7 +333,6 @@ export default function SidebarNav({ className = '' }: SidebarNavProps) {
             );
         }
 
-        // Item sin hijos (enlace directo)
         return (
             <Link
                 key={item.id}
@@ -327,7 +359,7 @@ export default function SidebarNav({ className = '' }: SidebarNavProps) {
     return (
         <nav className={`${className}`}>
             <div className="space-y-0.5">
-                {navigation.map(item => renderNavItem(item))}
+                {filteredNavigation.map(item => renderNavItem(item))}
             </div>
         </nav>
     );

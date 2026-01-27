@@ -1,4 +1,5 @@
 <?php
+// app/Http/Middleware/HandleInertiaRequests.php
 
 namespace App\Http\Middleware;
 
@@ -23,17 +24,17 @@ class HandleInertiaRequests extends Middleware
         
         if ($user) {
             // Obtener datos del personal
-            $personal = \DB::table('personal')
+            $personal = DB::table('personal')
                 ->where('id', $user->personal_id)
                 ->first();
             
-            // Obtener datos del comercial (si existe)
-            $comercial = \DB::table('comercial')
+            // Obtener datos del comercial (si existe en la tabla comercial)
+            $comercial = DB::table('comercial')
                 ->where('personal_id', $user->personal_id)
                 ->first();
                 
             // Obtener rol
-            $rol = \DB::table('roles')->where('id', $user->rol_id)->first();
+            $rol = DB::table('roles')->where('id', $user->rol_id)->first();
             
             // Obtener datos de la compañía
             $companiaData = $this->getCompaniaData($comercial);
@@ -56,12 +57,10 @@ class HandleInertiaRequests extends Middleware
                 'email' => $personal ? (string) $personal->email : null,
                 'telefono' => $personal ? (string) $personal->telefono : null,
                 
-                // Datos comerciales (si aplica)
+                // Datos comerciales
                 'comercial' => $comercial ? [
-                    'id' => (int) $comercial->id,
-                    'compania_id' => $comercial->compania_id ? (int) $comercial->compania_id : null,
-                    'prefijo_id' => $comercial->prefijo_id ? (int) $comercial->prefijo_id : null,
-                    'activo' => (bool) $comercial->activo,
+                    'es_comercial' => true,
+                    'prefijo_id' => $comercial && $comercial->prefijo_id ? (int) $comercial->prefijo_id : null,
                 ] : null,
                 
                 // Datos de la compañía
@@ -77,9 +76,66 @@ class HandleInertiaRequests extends Middleware
             
             // Compartir datos de la compañía globalmente
             $shared['compania'] = $companiaData;
+            
+            // Compartir datos para el modal de crear leads (para todos los usuarios)
+            // Obtener datos para el modal de crear leads
+            $shared['origenes'] = DB::table('origenes_contacto')
+                ->where('activo', 1)
+                ->select('id', 'nombre', 'color', 'icono')
+                ->get();
+                
+            // La tabla rubros NO tiene columna activo, traer todos
+            $shared['rubros'] = DB::table('rubros')
+                ->select('id', 'nombre')
+                ->get();
+            
+            // Provincias para el autocomplete de localidades
+            $shared['provincias'] = DB::table('provincias')
+                ->where('activo', 1)
+                ->select('id', 'provincia as nombre')
+                ->orderBy('provincia')
+                ->get();
+            
+            // Obtener lista de TODOS los comerciales activos (sin filtrar por compañía)
+            $comercialesDisponibles = DB::table('comercial')
+                ->join('personal', 'comercial.personal_id', '=', 'personal.id')
+                ->join('usuarios', 'personal.id', '=', 'usuarios.personal_id')
+                ->where('comercial.activo', 1)
+                ->where('usuarios.rol_id', 5) // Solo comerciales (rol_id = 5)
+                ->where('usuarios.activo', 1)
+                ->where('personal.activo', 1)
+                ->select(
+                    'comercial.id as comercial_id',
+                    'comercial.prefijo_id',
+                    'personal.id as personal_id',
+                    DB::raw("CONCAT(personal.nombre, ' ', personal.apellido) as nombre_completo")
+                    // Quitamos el email como solicitaste
+                )
+                ->orderBy('personal.nombre')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'id' => $item->comercial_id,
+                        'prefijo_id' => $item->prefijo_id,
+                        'personal_id' => $item->personal_id,
+                        'nombre' => $item->nombre_completo,
+                        // Sin email
+                    ];
+                });
+            
+            $shared['comerciales'] = $comercialesDisponibles;
+            
+            // Indicador si hay comerciales disponibles
+            $shared['hay_comerciales'] = count($comercialesDisponibles) > 0;
+            
         } else {
             $shared['auth'] = ['user' => null];
             $shared['compania'] = $this->getDefaultCompaniaData();
+            $shared['origenes'] = [];
+            $shared['rubros'] = [];
+            $shared['provincias'] = [];
+            $shared['comerciales'] = [];
+            $shared['hay_comerciales'] = false;
         }
         
         if ($request->route() && $request->route()->named('login')) {

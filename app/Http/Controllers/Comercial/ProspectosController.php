@@ -54,7 +54,7 @@ class ProspectosController extends Controller
             ->withQueryString();
         
         // Obtener orígenes y estados para los filtros
-        $origenes = OrigenContacto::where('es_activo', 1)
+        $origenes = OrigenContacto::where('activo', 1)
             ->whereNull('deleted_at')
             ->get(['id', 'nombre', 'color', 'icono']);
             

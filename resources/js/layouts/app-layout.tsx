@@ -1,3 +1,4 @@
+// AppLayout.tsx - Versión limpia
 import React, { ReactNode, useState } from 'react';
 import { Head, usePage } from '@inertiajs/react';
 import SidebarNav from '@/components/layout/SidebarNav';
@@ -18,6 +19,13 @@ interface PageProps {
             secondary: string;
         };
     };
+    auth?: {
+        user?: {
+            id: number;
+            rol_nombre: string;
+            [key: string]: any;
+        };
+    };
     [key: string]: any;
 }
 
@@ -25,7 +33,6 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const { props } = usePage<PageProps>();
     
-    // Si no se proporciona un título específico, usar el nombre de la compañía
     const pageTitle = title || (props.compania ? props.compania.nombre : 'Intranet 2026');
 
     return (
@@ -41,7 +48,10 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
                 {sidebarOpen && (
                     <aside className="lg:hidden fixed inset-0 z-40 pt-16 bg-local text-white">
                         <div className="h-full overflow-y-auto px-3 py-4">
-                            <SidebarNav />
+                            <SidebarNav 
+                                className="flex-1 overflow-y-auto"
+                                auth={props.auth}
+                            />
                             <div className="mt-4">
                                 <Footer />
                             </div>
@@ -51,7 +61,10 @@ export default function AppLayout({ children, title }: AppLayoutProps) {
                 
                 <aside className="hidden lg:flex lg:w-64 lg:flex-col fixed inset-y-0 pt-16 bg-local text-white border-r border-gray-800">
                     <div className="flex-1 px-3 py-4 overflow-y-auto">
-                        <SidebarNav />
+                        <SidebarNav 
+                            className="flex-1 overflow-y-auto"
+                            auth={props.auth}
+                        />
                     </div>
                     <div className="px-3 pb-4">
                         <Footer />
