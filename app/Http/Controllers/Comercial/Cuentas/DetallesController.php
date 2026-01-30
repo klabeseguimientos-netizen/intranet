@@ -17,13 +17,14 @@ class DetallesController extends Controller
     {
         $usuario = Auth::user();
         
-        // Consulta base de empresas
+        // Consulta base de empresas CON vehículos y abonos
         $empresasQuery = Empresa::with([
             'contactos' => function ($query) {
                 $query->where('es_activo', 1)
                       ->whereNull('deleted_at')
                       ->with('lead');
-            }
+            },
+            'vehiculosConAbonos' // Nueva relación
         ])->whereNull('deleted_at');
         
         // Si el usuario NO ve todas las cuentas, filtrar por sus prefijos
@@ -48,6 +49,25 @@ class DetallesController extends Controller
         // Aplicar ordenamiento
         $empresas = $empresasQuery->orderBy('created', 'desc')->get();
         
+        // Obtener información adicional: prefijos y localidades
+        $prefijos = DB::table('prefijos')
+            ->where('activo', 1)
+            ->pluck('codigo', 'id')
+            ->toArray();
+            
+        $localidades = DB::table('localidades')
+            ->join('provincias', 'localidades.provincia_id', '=', 'provincias.id')
+            ->where('localidades.activo', 1)
+            ->where('provincias.activo', 1)
+            ->select(
+                'localidades.id',
+                'localidades.localidad',
+                'localidades.codigo_postal',
+                'provincias.provincia'
+            )
+            ->get()
+            ->keyBy('id');
+        
         // Calcular estadísticas
         $total = $empresas->count();
         $activas = $empresas->where('es_activo', true)->count();
@@ -64,15 +84,35 @@ class DetallesController extends Controller
             'prefijos' => $usuario->ve_todas_cuentas ? [] : $prefijosUsuario ?? [],
         ];
         
-        // Transformar datos para Inertia
-        $empresasData = $empresas->map(function ($empresa) {
+        // Transformar datos para Inertia (incluyendo vehículos)
+        $empresasData = $empresas->map(function ($empresa) use ($prefijos, $localidades) {
+            // Obtener código del prefijo
+            $codigoPrefijo = isset($prefijos[$empresa->prefijo_id]) ? $prefijos[$empresa->prefijo_id] : 'N/A';
+            $codigoAlfaEmpresa = $codigoPrefijo . '-' . $empresa->numeroalfa;
+            
+            // Obtener información de localidad fiscal
+            $localidadFiscal = null;
+            if ($empresa->localidad_fiscal_id && isset($localidades[$empresa->localidad_fiscal_id])) {
+                $loc = $localidades[$empresa->localidad_fiscal_id];
+                $localidadFiscal = [
+                    'localidad' => $loc->localidad,
+                    'provincia' => $loc->provincia,
+                    'codigo_postal' => $loc->codigo_postal,
+                ];
+            }
+            
             return [
                 'id' => $empresa->id,
                 'prefijo_id' => $empresa->prefijo_id,
+                'numeroalfa' => $empresa->numeroalfa,
+                'codigo_alfa_empresa' => $codigoAlfaEmpresa,
                 'nombre_fantasia' => $empresa->nombre_fantasia,
                 'razon_social' => $empresa->razon_social,
                 'cuit' => $empresa->cuit,
                 'direccion_fiscal' => $empresa->direccion_fiscal,
+                'codigo_postal_fiscal' => $empresa->codigo_postal_fiscal,
+                'localidad_fiscal_id' => $empresa->localidad_fiscal_id,
+                'localidad_fiscal' => $localidadFiscal,
                 'telefono_fiscal' => $empresa->telefono_fiscal,
                 'email_fiscal' => $empresa->email_fiscal,
                 'es_activo' => (bool) $empresa->es_activo,
@@ -91,6 +131,32 @@ class DetallesController extends Controller
                         ] : null,
                     ];
                 }),
+                // Datos de vehículos
+                'vehiculos' => $empresa->vehiculosConAbonos->map(function ($vehiculo) {
+                    return [
+                        'id' => $vehiculo->id,
+                        'codigo_alfa' => $vehiculo->codigo_alfa,
+                        'nombre_mix' => $vehiculo->nombre_mix,
+                        'ab_alta' => $vehiculo->ab_alta ? $vehiculo->ab_alta->toDateString() : null,
+                        'avl_anio' => $vehiculo->avl_anio,
+                        'avl_color' => $vehiculo->avl_color,
+                        'avl_identificador' => $vehiculo->avl_identificador,
+                        'avl_marca' => $vehiculo->avl_marca,
+                        'avl_modelo' => $vehiculo->avl_modelo,
+                        'avl_patente' => $vehiculo->avl_patente,
+                        'categoria' => $vehiculo->categoria,
+                        'empresa_id' => $vehiculo->empresa_id,
+                        'abonos' => $vehiculo->abonosActivos->map(function ($abono) {
+                            return [
+                                'id' => $abono->id,
+                                'abono_codigo' => $abono->abono_codigo,
+                                'abono_nombre' => $abono->abono_nombre,
+                                'abono_precio' => (float) $abono->abono_precio,
+                                'created_at' => $abono->created_at ? $abono->created_at->toDateTimeString() : null,
+                            ];
+                        }),
+                    ];
+                }),
             ];
         });
         
@@ -102,7 +168,6 @@ class DetallesController extends Controller
                 'nuevas' => $nuevas,
             ],
             'usuario' => $infoUsuario,
-            'filters' => $request->only(['search']),
         ]);
     }
 }

@@ -35,6 +35,17 @@ class Empresa extends Model
         'modified_by',
     ];
 
+        public function vehiculos()
+    {
+        return $this->hasMany(Vehiculo::class, 'empresa_id');
+    }
+    
+    public function vehiculosConAbonos()
+    {
+        return $this->hasMany(Vehiculo::class, 'empresa_id')
+                    ->with(['abonosActivos']);
+    }
+
     public function contactos()
     {
         return $this->hasMany(EmpresaContacto::class, 'empresa_id');

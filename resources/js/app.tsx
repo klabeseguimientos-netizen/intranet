@@ -9,6 +9,7 @@ import { initializeTheme } from './hooks/use-appearance';
 
 const appName =  'Intranet';
 
+
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     resolve: (name) =>

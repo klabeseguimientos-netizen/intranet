@@ -79,6 +79,9 @@ export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
                                         src={`/images/logos/${compania.logo}`}
                                         alt={`Logo ${compania.nombre}`}
                                         className="h-14 w-auto object-contain"
+                                        loading="lazy"  // Agrega lazy loading
+                                        width="112"     // Agrega dimensiones explícitas
+                                        height="56"     // Agrega dimensiones explícitas
                                         onError={(e) => {
                                             const target = e.target as HTMLImageElement;
                                             target.src = '/images/logos/logo.webp';

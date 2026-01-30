@@ -62,6 +62,7 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
 
     // Cuentas
     Route::get('/comercial/cuentas', [DetallesController::class, 'index'])->name('comercial.cuentas');
+    Route::get('/comercial/cuentas/detalles', [DetallesController::class, 'index'])->name('comercial.cuentas.detalles');
     Route::get('/comercial/cuentas/certificados', [CertificadosFlotaController::class, 'index'])->name('comercial.cuentas.certificados');
     Route::get('/comercial/cuentas/cambio-titularidad', [CambioTitularidadController::class, 'index'])->name('comercial.cuentas.cambio-titularidad');
     Route::get('/comercial/cuentas/cambio-razon-social', [CambioRazonSocialController::class, 'index'])->name('comercial.cuentas.cambio-razon-social');
