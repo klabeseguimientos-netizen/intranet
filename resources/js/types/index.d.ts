@@ -122,3 +122,5 @@ declare module 'leaflet' {
     
     export function map(element: string | HTMLElement, options?: any): Map;
 }
+
+export * from './leads'; 

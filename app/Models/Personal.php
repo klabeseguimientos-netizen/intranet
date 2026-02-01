@@ -36,4 +36,20 @@ class Personal extends Model
     {
         return $this->hasOne(Tecnico::class, 'personal_id');
     }
+        /**
+     * Obtener el usuario asociado
+     */
+    public function usuario()
+    {
+        return $this->hasOne(Usuario::class, 'personal_id');
+    }
+    
+    /**
+     * Obtener el nombre completo
+     */
+    public function getNombreCompletoAttribute()
+    {
+        return $this->nombre . ' ' . $this->apellido;
+    }
+
 }

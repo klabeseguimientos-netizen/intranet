@@ -1,7 +1,8 @@
 // resources/js/components/leads/CrearLeadModal.tsx
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Phone, Mail, MapPin, Briefcase, User, Check, Search, Loader, CheckCircle, XCircle } from 'lucide-react';
+import { X, UserPlus, Phone, Mail, MapPin, Briefcase, User, Check, Search, Loader } from 'lucide-react';
 import { router } from '@inertiajs/react';
+import Toast from '@/components/ui/toast';
 
 interface Usuario {
     id: number;
@@ -57,6 +58,7 @@ interface CrearLeadModalProps {
     comerciales: Comercial[];
     hay_comerciales: boolean;
 }
+
 export default function CrearLeadModal({ 
     isOpen, 
     onClose, 
@@ -73,12 +75,11 @@ export default function CrearLeadModal({
     const [localidadesResult, setLocalidadesResult] = useState<Localidad[]>([]);
     const [showLocalidadesDropdown, setShowLocalidadesDropdown] = useState(false);
     
-    // Estado para el toast interno
+    // Estado para el toast
     const [toast, setToast] = useState<{
         show: boolean;
         message: string;
         type: 'success' | 'error';
-        timer: NodeJS.Timeout | null;
     } | null>(null);
     
     // Función para mostrar toast y cerrar modal
@@ -86,25 +87,19 @@ export default function CrearLeadModal({
         // Primero cerramos el modal
         onClose();
         
-        // Limpiar timer anterior si existe
-        if (toast?.timer) {
-            clearTimeout(toast.timer);
-        }
-        
         // Luego mostramos el toast
         setTimeout(() => {
-            const duration = type === 'success' ? 1000 : 5000; // 1s para éxito, 5s para error
-            const timer = setTimeout(() => {
-                setToast(null);
-            }, duration);
-            
             setToast({ 
                 show: true, 
                 message, 
-                type,
-                timer 
+                type
             });
         }, 100);
+    };
+
+    // Función para cerrar el toast
+    const closeToast = () => {
+        setToast(null);
     };
 
     // Estado del formulario
@@ -148,21 +143,9 @@ export default function CrearLeadModal({
             setLocalidadesResult([]);
             setShowLocalidadesDropdown(false);
             // Limpiar toast si existe
-            if (toast?.timer) {
-                clearTimeout(toast.timer);
-            }
             setToast(null);
         }
     }, [isOpen, usuario]);
-
-    // Limpiar timer cuando el componente se desmonta
-    useEffect(() => {
-        return () => {
-            if (toast?.timer) {
-                clearTimeout(toast.timer);
-            }
-        };
-    }, [toast]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -282,7 +265,6 @@ export default function CrearLeadModal({
                     }
                 },
                 onError: (errors) => {
-                    
                     let errorMessage = 'Error al crear el lead.';
                     
                     // Manejar diferentes formatos de error
@@ -339,14 +321,6 @@ export default function CrearLeadModal({
         }
     };
 
-    // Función para cerrar manualmente el toast
-    const closeToast = () => {
-        if (toast?.timer) {
-            clearTimeout(toast.timer);
-        }
-        setToast(null);
-    };
-
     if (!isOpen && !toast?.show) return null;
 
     // Verificar si es comercial
@@ -354,45 +328,15 @@ export default function CrearLeadModal({
 
     return (
         <>
-            {/* Toast notification - CENTRADO */}
+            {/* Toast notification usando el componente reutilizable */}
             {toast?.show && (
-                <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-                    {/* Overlay semi-transparente */}
-                    <div className="fixed inset-0 bg-black/30" onClick={closeToast} />
-                    
-                    {/* Toast centrado */}
-                    <div className={`relative animate-in fade-in-0 zoom-in-95 duration-300 ${
-                        toast.type === 'success' ? 'animate-out fade-out-0 zoom-out-95 duration-300 delay-700' : ''
-                    }`}>
-                        <div className={`flex items-start gap-4 p-6 rounded-xl shadow-2xl border max-w-md mx-4 ${
-                            toast.type === 'success' 
-                                ? 'bg-white border-green-200 text-green-800' 
-                                : 'bg-white border-red-200 text-red-800'
-                        }`}>
-                            {toast.type === 'success' ? (
-                                <div className="p-2 bg-green-100 rounded-full">
-                                    <CheckCircle className="h-6 w-6 text-green-600" />
-                                </div>
-                            ) : (
-                                <div className="p-2 bg-red-100 rounded-full">
-                                    <XCircle className="h-6 w-6 text-red-600" />
-                                </div>
-                            )}
-                            <div className="flex-1">
-                                <div className="text-lg font-semibold mb-1">
-                                    {toast.type === 'success' ? '¡Éxito!' : 'Error'}
-                                </div>
-                                <div className="text-gray-700">{toast.message}</div>
-                            </div>
-                            <button
-                                onClick={closeToast}
-                                className="text-gray-400 hover:text-gray-600 ml-2"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                <Toast
+                    message={toast.message}
+                    type={toast.type}
+                    duration={toast.type === 'success' ? 3000 : 5000}
+                    position="top-center"
+                    onClose={closeToast}
+                />
             )}
 
             {/* Modal - solo se muestra si isOpen es true */}

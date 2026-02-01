@@ -1,5 +1,5 @@
 <?php
-// app/Models/Tecnico.php - VERSIÓN SIMPLIFICADA
+// app/Models/Tecnico.php 
 
 namespace App\Models;
 
