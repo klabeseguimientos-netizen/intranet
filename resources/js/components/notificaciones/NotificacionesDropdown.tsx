@@ -1,6 +1,6 @@
 // resources/js/Components/Notificaciones/NotificacionesDropdown.tsx
 import React, { useState, useEffect } from 'react';
-import { router, usePage } from '@inertiajs/react';
+import { router, usePage, } from '@inertiajs/react';
 import { notificacionesApi } from '@/utils/axiosHelper';
 import { 
   Bell, 
@@ -10,7 +10,9 @@ import {
   Clock, 
   FileText, 
   Users,
-  RefreshCw
+  RefreshCw,
+  Calendar,
+  Eye
 } from 'lucide-react';
 
 interface Notificacion {
@@ -48,157 +50,113 @@ const NotificacionesDropdown: React.FC = () => {
   const { props } = usePage<PageProps>();
   const usuario = props.auth?.user;
   
-  // Función para hacer fetch con headers correctos
-  const fetchJson = async (url: string, options: RequestInit = {}) => {
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
-    const defaultOptions: RequestInit = {
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': csrfToken || '',
-        'X-Requested-With': 'XMLHttpRequest'
-      },
-      credentials: 'same-origin'
-    };
-    
-    const response = await fetch(url, { ...defaultOptions, ...options });
-    return response.json();
-  };
-  
   // Cargar notificaciones iniciales
-useEffect(() => {
+  useEffect(() => {
     if (usuario?.id) {
-        cargarNotificaciones();
+      cargarNotificaciones();
     }
     
     // Escuchar eventos de actualización
     const handleActualizacion = () => {
-        cargarNotificaciones();
+      cargarNotificaciones();
     };
     
     window.addEventListener('notificaciones-actualizadas', handleActualizacion);
     
-    // También escuchar cuando la página gana foco (por si acaso)
-    window.addEventListener('focus', handleActualizacion);
-    
     return () => {
-        window.removeEventListener('notificaciones-actualizadas', handleActualizacion);
-        window.removeEventListener('focus', handleActualizacion);
+      window.removeEventListener('notificaciones-actualizadas', handleActualizacion);
     };
-}, [usuario?.id]);
+  }, [usuario?.id]);
   
-// En cargarNotificaciones:
-const cargarNotificaciones = async (): Promise<void> => {
+  const cargarNotificaciones = async (): Promise<void> => {
     if (cargando || !usuario?.id) return;
     
     setCargando(true);
     
     try {
-        // Usar axiosHelper con la nueva ruta AJAX
-        const response = await notificacionesApi.getNotificaciones({
-            limit: 10,
-            no_leidas: true
-        });
-        
-        if (response.data.success) {
-            setNotificaciones(response.data.data || []);
-            setSinLeer(response.data.meta?.total_no_leidas || 0);
-        } else {
-            console.error('Error en respuesta:', response.data.error);
-        }
-    } catch (error) {
-        console.error('Error cargando notificaciones:', error);
-    } finally {
-        setCargando(false);
-    }
-};
-
-// En marcarComoLeida:
-const marcarComoLeida = async (id: number, e: React.MouseEvent): Promise<void> => {
-    e.stopPropagation();
-    
-    try {
-        // Usar la nueva ruta AJAX
-        const response = await notificacionesApi.marcarLeida(id);
-        
-        if (response.data.success) {
-            setNotificaciones(prev => prev.filter(n => n.id !== id));
-            
-            if (response.data.meta?.total_no_leidas !== undefined) {
-                setSinLeer(response.data.meta.total_no_leidas);
-            } else {
-                const notificacion = notificaciones.find(n => n.id === id);
-                if (notificacion && !notificacion.leida) {
-                    setSinLeer(prev => Math.max(0, prev - 1));
-                }
-            }
-        }
-    } catch (error) {
-        console.error('Error:', error);
-    }
-};
-  
-  const marcarTodasComoLeidas = async (): Promise<void> => {
-    try {
-      const response = await fetchJson('/notificaciones/marcar-todas-leidas', {
-        method: 'POST'
+      // CAMBIO 1: Usar getNoLeidas en lugar de getActivas
+      const response = await notificacionesApi.getNoLeidas({
+        limit: 10
       });
       
-      if (response.success) {
-        // Eliminar todas las notificaciones no leídas de la lista
-        setNotificaciones(prev => prev.filter(n => n.leida));
+      if (response.data.success) {
+        // Filtrar por fecha (doble verificación)
+        const notificacionesActivas = response.data.data.filter((notif: Notificacion) => 
+          esNotificacionActiva(notif.fecha_notificacion)
+        );
         
-        // O simplemente limpiar todas si prefieres
-        // setNotificaciones([]);
+        // EL BACKEND YA DEVUELVE SOLO NO LEÍDAS, así que no necesitamos filtrar
+        setNotificaciones(notificacionesActivas);
+        setSinLeer(response.data.meta?.total_no_leidas || 0);
         
-        // Actualizar contador desde el backend si está disponible
-        if (response.meta?.total_no_leidas !== undefined) {
-          setSinLeer(response.meta.total_no_leidas);
-        } else {
-          // O establecer a 0 directamente
-          setSinLeer(0);
+        // Si hay notificaciones pero no aparecen (bug), forzar recarga
+        if (response.data.meta?.total_no_leidas > 0 && notificacionesActivas.length === 0) {
+          setTimeout(() => cargarNotificaciones(), 1000);
         }
+      } else {
+        console.error('Error en respuesta:', response.data);
       }
     } catch (error) {
-      console.error('Error marcando todas como leídas:', error);
+      console.error('Error cargando notificaciones:', error);
+      // Fallback: intentar cargar contador
+      try {
+        const contadorResponse = await notificacionesApi.getContador();
+        if (contadorResponse.data.success) {
+          setSinLeer(contadorResponse.data.total_no_leidas || 0);
+        }
+      } catch (contadorError) {
+        console.error('Error cargando contador:', contadorError);
+      }
+    } finally {
+      setCargando(false);
     }
   };
   
-  // Versión alternativa usando el mismo método que marcarComoLeida
-  const marcarTodasComoLeidasV2 = async (): Promise<void> => {
+  const marcarComoLeida = async (id: number, e: React.MouseEvent): Promise<void> => {
+    e.stopPropagation();
+    
     try {
-      // Si hay notificaciones no leídas, marcarlas una por una
-      const notificacionesNoLeidas = notificaciones.filter(n => !n.leida);
+      setCargando(true);
+      const response = await notificacionesApi.marcarLeida(id);
       
-      if (notificacionesNoLeidas.length === 0) return;
-      
-      // Podemos hacer una sola petición al backend y luego actualizar el estado
+      if (response.data.success) {
+        // Eliminar la notificación de la lista local inmediatamente
+        setNotificaciones(prev => prev.filter(n => n.id !== id));
+        
+        // Actualizar contador del response
+        setSinLeer(response.data.meta?.total_no_leidas || 0);
+        
+        // Recargar después de un breve momento para sincronizar
+        setTimeout(() => {
+          cargarNotificaciones();
+        }, 300);
+      }
+    } catch (error) {
+      console.error('Error marcando como leída:', error);
+    } finally {
+      setCargando(false);
+    }
+  };
+  
+  const marcarTodasComoLeidas = async (): Promise<void> => {
+    try {
+      setCargando(true);
       const response = await notificacionesApi.marcarTodasLeidas();
       
       if (response.data.success) {
-        // Ocultar todas las notificaciones no leídas inmediatamente
-        setNotificaciones(prev => prev.filter(n => n.leida));
+        // Limpiar todas las notificaciones
+        setNotificaciones([]);
         setSinLeer(0);
+        
+        // Forzar recarga para sincronizar
+        setTimeout(() => {
+          cargarNotificaciones();
+        }, 300);
       }
     } catch (error) {
       console.error('Error marcando todas como leídas:', error);
-      
-      // Fallback: marcar cada una individualmente
-      try {
-        // Crear un array de promesas para marcar todas como leídas
-        const promesas = notificaciones
-          .filter(n => !n.leida)
-          .map(n => notificacionesApi.marcarLeida(n.id));
-        
-        await Promise.all(promesas);
-        
-        // Ocultar todas después de marcarlas
-        setNotificaciones([]);
-        setSinLeer(0);
-      } catch (fallbackError) {
-        console.error('Error en fallback:', fallbackError);
-      }
+    } finally {
+      setCargando(false);
     }
   };
   
@@ -208,21 +166,27 @@ const marcarComoLeida = async (id: number, e: React.MouseEvent): Promise<void> =
     let ruta = '';
     switch(notificacion.entidad_tipo) {
       case 'lead':
-        ruta = `/leads/${notificacion.entidad_id}`;
+        ruta = `/comercial/leads/${notificacion.entidad_id}`;
         break;
       case 'presupuesto':
-        ruta = `/presupuestos/${notificacion.entidad_id}`;
+        ruta = `/comercial/presupuestos/${notificacion.entidad_id}`;
         break;
       case 'contrato':
-        ruta = `/contratos/${notificacion.entidad_id}`;
+        ruta = `/comercial/cuentas/${notificacion.entidad_id}`;
+        break;
+      case 'comentario':
+        ruta = `/comercial/leads/${notificacion.entidad_id}`;
         break;
       default:
         return;
     }
     
-    // Marcar como leída al navegar también
+    // Marcar como leída al navegar
     if (!notificacion.leida) {
       notificacionesApi.marcarLeida(notificacion.id).catch(console.error);
+      // Actualizar localmente
+      setNotificaciones(prev => prev.filter(n => n.id !== notificacion.id));
+      setSinLeer(prev => Math.max(0, prev - 1));
     }
     
     router.visit(ruta);
@@ -252,9 +216,9 @@ const marcarComoLeida = async (id: number, e: React.MouseEvent): Promise<void> =
   const getColorPrioridad = (prioridad: string): string => {
     switch(prioridad) {
       case 'urgente':
-        return 'bg-red-100 border-red-500';
+        return 'bg-red-50 border-red-500';
       case 'alta':
-        return 'bg-orange-100 border-orange-500';
+        return 'bg-orange-50 border-orange-500';
       case 'normal':
         return 'bg-blue-50 border-blue-500';
       case 'baja':
@@ -267,20 +231,27 @@ const marcarComoLeida = async (id: number, e: React.MouseEvent): Promise<void> =
   const formatFecha = (fechaString: string): string => {
     try {
       const fecha = new Date(fechaString);
-      const hoy = new Date();
-      const ayer = new Date(hoy);
-      ayer.setDate(ayer.getDate() - 1);
+      const ahora = new Date();
       
       if (isNaN(fecha.getTime())) {
         return 'Fecha inválida';
       }
       
-      if (fecha.toDateString() === hoy.toDateString()) {
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      
+      const fechaComparar = new Date(fecha);
+      fechaComparar.setHours(0, 0, 0, 0);
+      
+      const ayer = new Date(hoy);
+      ayer.setDate(ayer.getDate() - 1);
+      
+      if (fechaComparar.getTime() === hoy.getTime()) {
         return `Hoy ${fecha.toLocaleTimeString('es-ES', { 
           hour: '2-digit', 
           minute: '2-digit' 
         })}`;
-      } else if (fecha.toDateString() === ayer.toDateString()) {
+      } else if (fechaComparar.getTime() === ayer.getTime()) {
         return `Ayer ${fecha.toLocaleTimeString('es-ES', { 
           hour: '2-digit', 
           minute: '2-digit' 
@@ -295,6 +266,16 @@ const marcarComoLeida = async (id: number, e: React.MouseEvent): Promise<void> =
       }
     } catch (error) {
       return 'Fecha inválida';
+    }
+  };
+  
+  const esNotificacionActiva = (fechaString: string): boolean => {
+    try {
+      const fechaNotificacion = new Date(fechaString);
+      const ahora = new Date();
+      return fechaNotificacion <= ahora;
+    } catch {
+      return false;
     }
   };
   
@@ -338,9 +319,10 @@ const marcarComoLeida = async (id: number, e: React.MouseEvent): Promise<void> =
               <div className="flex items-center space-x-2">
                 {sinLeer > 0 && (
                   <button 
-                    onClick={marcarTodasComoLeidasV2}
+                    onClick={marcarTodasComoLeidas}
                     className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded text-sm flex items-center gap-1"
                     title="Marcar todas como leídas"
+                    disabled={cargando}
                   >
                     <Check className="h-4 w-4" />
                     <span>Marcar todas</span>
@@ -363,6 +345,12 @@ const marcarComoLeida = async (id: number, e: React.MouseEvent): Promise<void> =
                 <div className="p-8 text-center">
                   <Bell className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                   <p className="text-gray-500">No hay notificaciones nuevas</p>
+                  <p className="text-sm text-gray-400 mt-1">
+                    {sinLeer === 0 
+                      ? 'Todas las notificaciones están leídas' 
+                      : 'Las notificaciones aparecerán en su fecha programada'
+                    }
+                  </p>
                 </div>
               ) : (
                 notificaciones.map((notificacion) => (
@@ -387,10 +375,12 @@ const marcarComoLeida = async (id: number, e: React.MouseEvent): Promise<void> =
                           </h4>
                           
                           <div className="flex items-center space-x-1 ml-2">
+                            {/* TODAS las notificaciones en el dropdown son NO LEÍDAS, así que siempre mostrar botón */}
                             <button 
                               onClick={(e) => marcarComoLeida(notificacion.id, e)}
                               className="p-1 text-gray-400 hover:text-green-600 rounded hover:bg-gray-100"
                               title="Marcar como leída"
+                              disabled={cargando}
                             >
                               <Check className="h-4 w-4" />
                             </button>
@@ -424,22 +414,40 @@ const marcarComoLeida = async (id: number, e: React.MouseEvent): Promise<void> =
               )}
             </div>
             
-            {/* Link para ver todas las notificaciones */}
-            {notificaciones.length > 0 && (
-              <div className="p-3 border-t bg-gray-50 text-center">
-                <a 
-                  href="/notificaciones" 
-                  className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    router.visit('/notificaciones');
-                    setMostrarDropdown(false);
-                  }}
-                >
-                  Ver todas las notificaciones
-                </a>
-              </div>
-            )}
+{/* Link para ver todas las notificaciones */}
+{(notificaciones.length > 0 || sinLeer > 0) && (
+  <div className="p-3 border-t bg-gray-50 text-center flex justify-between items-center">
+    <div>
+      <a 
+        href="/notificaciones" 
+        className="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
+        onClick={(e) => {
+          e.preventDefault();
+          router.visit('/notificaciones');
+          setMostrarDropdown(false);
+        }}
+      >
+        <Eye className="h-3 w-3" />
+        Ver activas
+      </a>
+    </div>
+    
+    <div>
+      <a 
+        href="/notificaciones/programadas" 
+        className="text-xs text-green-600 hover:text-green-800 hover:underline flex items-center gap-1"
+        onClick={(e) => {
+          e.preventDefault();
+          router.visit('/notificaciones/programadas');
+          setMostrarDropdown(false);
+        }}
+      >
+        <Calendar className="h-3 w-3" />
+        Ver programadas
+      </a>
+    </div>
+  </div>
+)}
           </div>
           
           {/* Backdrop para cerrar al hacer clic fuera */}

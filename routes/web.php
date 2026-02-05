@@ -7,11 +7,13 @@ use App\Http\Controllers\Comercial\ContactosController;
 use App\Http\Controllers\Comercial\PresupuestosController;
 use App\Http\Controllers\Comercial\RecordatoriosController;
 use App\Http\Controllers\Comercial\ProspectosController;
+use App\Http\Controllers\Comercial\LeadController;
+use App\Http\Controllers\Comercial\LocalidadController;
 use App\Http\Controllers\Comercial\Cuentas\DetallesController;
 use App\Http\Controllers\Comercial\Cuentas\CertificadosFlotaController;
 use App\Http\Controllers\Comercial\Cuentas\CambioTitularidadController;
 use App\Http\Controllers\Comercial\Cuentas\CambioRazonSocialController;
-use App\Http\Controllers\Config\Parametros\EstadosContactosController;
+use App\Http\Controllers\Config\Parametros\EstadosLeadController;
 use App\Http\Controllers\Config\Parametros\MediosPagoController;
 use App\Http\Controllers\Config\Parametros\MotivosBajaController;
 use App\Http\Controllers\Config\Parametros\OrigenProspectoController;
@@ -35,8 +37,8 @@ use App\Http\Controllers\rrhh\Personal\DatosPersonalesController;
 use App\Http\Controllers\rrhh\Personal\LicenciasController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\RRHH\Equipos\TecnicoController;
-use App\Http\Controllers\NotificacionController as NotificacionViewController;
-use App\Http\Controllers\Api\NotificacionController as NotificacionApiController;
+use App\Http\Controllers\NotificacionController;
+
 use Inertia\Inertia;
 
 use Illuminate\Support\Facades\Route;
@@ -57,13 +59,14 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
     Route::get('/comercial/actividad', [ActividadController::class, 'index'])->name('comercial.actividad');
     Route::get('/comercial/contactos', [ContactosController::class, 'index'])->name('comercial.contactos');
     Route::get('/comercial/presupuestos', [PresupuestosController::class, 'index'])->name('comercial.presupuestos');
-    Route::get('/comercial/recordatorios', [RecordatoriosController::class, 'index'])->name('comercial.recordatorios');
     Route::get('/comercial/prospectos', [ProspectosController::class, 'index'])->name('comercial.prospectos');
-
 
     Route::get('/comercial/leads/{id}/comentarios', [ProspectosController::class, 'comentarios']);
     Route::post('/comercial/leads/{id}/comentarios', [ProspectosController::class, 'guardarComentario']);
     Route::put('/comercial/leads/{lead}', [ProspectosController::class, 'update'])->name('leads.update');
+    Route::get('/comercial/leads/{lead}/tiempos-estados', [ProspectosController::class, 'tiemposEntreEstados'])->name('leads.tiempos-estados');
+    Route::get('/comercial/leads/{lead}/comentarios-modal-data', [ProspectosController::class, 'comentariosModalData'])->name('leads.comentarios-modal-data');
+    Route::get('/comercial/leads/{lead}', [LeadController::class, 'show'])->name('comercial.leads.show');
 
     // Cuentas
     Route::get('/comercial/cuentas', [DetallesController::class, 'index'])->name('comercial.cuentas.detalles');
@@ -71,8 +74,16 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
     Route::get('/comercial/cuentas/cambio-titularidad', [CambioTitularidadController::class, 'index'])->name('comercial.cuentas.cambio-titularidad');
     Route::get('/comercial/cuentas/cambio-razon-social', [CambioRazonSocialController::class, 'index'])->name('comercial.cuentas.cambio-razon-social');
 
-    // Configuración - Parámetros Generales
-    Route::get('/config/parametros/estados-contactos', [EstadosContactosController::class, 'index'])->name('config.estados-contactos');
+
+ 
+
+    Route::prefix('config/parametros/estados-lead')->group(function () {
+    Route::get('/', [EstadosLeadController::class, 'index'])->name('config.estados-lead');
+    Route::post('/', [EstadosLeadController::class, 'store']);
+    Route::put('/{id}', [EstadosLeadController::class, 'update']);
+    Route::delete('/{id}', [EstadosLeadController::class, 'destroy']);
+    Route::post('/{id}/toggle-activo', [EstadosLeadController::class, 'toggleActivo']);
+});
     Route::get('/config/parametros/medios-pago', [MediosPagoController::class, 'index'])->name('config.medios-pago');
     Route::get('/config/parametros/motivos-baja', [MotivosBajaController::class, 'index'])->name('config.motivos-baja');
     Route::get('/config/parametros/origen-prospecto', [OrigenProspectoController::class, 'index'])->name('config.origen-prospecto');
@@ -102,25 +113,16 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
     Route::get('/rrhh/personal/datos', [DatosPersonalesController::class, 'index'])->name('rrhh.personal.datos-personales');
     Route::get('/rrhh/personal/cumpleanos', [CumpleanosController::class, 'index'])->name('rrhh.personal.cumpleanos');
     Route::get('/rrhh/personal/licencias', [LicenciasController::class, 'index'])->name('rrhh.personal.licencias');
-
-    // Estadísticas (solo para usuarios 3 y 5 con rol Administrador)
-    Route::get('/estadisticas/comercial-grupal', [ComercialGrupalController::class, 'index'])
-        ->name('estadisticas.comercial-grupal');
-    Route::get('/estadisticas/comercial-individual', [ComercialIndividualController::class, 'index'])
-        ->name('estadisticas.comercial-individual');
-
-    // Leads y Localidades
+/*
     Route::prefix('comercial')->group(function () {
         Route::get('/leads/create', [LeadController::class, 'create'])->name('comercial.leads.create');
         Route::post('/leads', [LeadController::class, 'store'])->name('comercial.leads.store');
         Route::get('/leads', [LeadController::class, 'index'])->name('comercial.leads.index');
     });
-
-    Route::get('/comercial/localidades/buscar', [\App\Http\Controllers\Comercial\LocalidadController::class, 'buscar'])
-        ->name('comercial.localidades.buscar');
+*/
+    Route::get('/comercial/localidades/buscar', [LocalidadController::class, 'buscar'])->name('comercial.localidades.buscar');
     
-    Route::post('/comercial/leads', [\App\Http\Controllers\Comercial\LeadController::class, 'store'])
-        ->name('comercial.leads.store');
+    Route::post('/comercial/leads', [LeadController::class, 'store'])->name('comercial.leads.store');
 
 
 Route::prefix('rrhh/tecnicos')->group(function () {
@@ -130,18 +132,24 @@ Route::prefix('rrhh/tecnicos')->group(function () {
     Route::put('/{tecnico}', [TecnicoController::class, 'update'])->name('rrhh.tecnicos.update');
     Route::delete('/{tecnico}', [TecnicoController::class, 'destroy'])->name('rrhh.tecnicos.destroy');
 });
-    Route::get('/notificaciones', [NotificacionViewController::class, 'index'])
-        ->name('notificaciones.index');
+    
+    // NOTIFICACIONES - UNIFICADO
+    Route::get('/notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
+    Route::get('/notificaciones/programadas', [NotificacionController::class, 'programadas'])->name('notificaciones.programadas');
 
-    // Rutas API con prefijo AJAX para evitar conflicto
+    // Rutas API para AJAX
     Route::prefix('ajax/notificaciones')->group(function () {
-        Route::get('/', [NotificacionApiController::class, 'index'])->name('notificaciones.api.index');
-        Route::post('/{id}/marcar-leida', [NotificacionApiController::class, 'marcarLeida'])->name('notificaciones.api.marcar-leida');
-        Route::post('/marcar-todas-leidas', [NotificacionApiController::class, 'marcarTodasLeidas'])->name('notificaciones.api.marcar-todas');
-        Route::delete('/{id}', [NotificacionApiController::class, 'destroy'])->name('notificaciones.api.destroy');
-        Route::get('/contador', [NotificacionApiController::class, 'contador'])->name('notificaciones.api.contador');
+        Route::get('/', [NotificacionController::class, 'ajaxIndex'])->name('notificaciones.ajax.index');
+        Route::post('/{id}/marcar-leida', [NotificacionController::class, 'marcarLeida'])->name('notificaciones.marcar-leida');
+        Route::post('/marcar-todas-leidas', [NotificacionController::class, 'marcarTodasLeidas'])->name('notificaciones.marcar-todas');
+        Route::delete('/{id}', [NotificacionController::class, 'destroy'])->name('notificaciones.destroy');
+        Route::get('/contador', [NotificacionController::class, 'contador'])->name('notificaciones.contador');
     });
-
+    
+   
+   
+   
+   
     // Ruta catch-all para Inertia SPA
     Route::fallback(function () {
         return Inertia::render('Errors/404');

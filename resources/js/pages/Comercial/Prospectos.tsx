@@ -8,6 +8,7 @@ import VerComentariosModal from '@/components/Modals/VerComentariosModal';
 import NuevoComentarioModal from '@/components/Modals/NuevoComentarioModal';
 import EditarLeadModal from '@/components/Modals/EditarLeadModal';
 import VerNotaModal from '@/components/Modals/VerNotaModal';
+import TiemposEstados from '@/components/leads/TiemposEstados';
 import {
     Lead,
     Origen,
@@ -18,7 +19,7 @@ import {
     Comercial,
     NotaLead
 } from '@/types/leads';
-import { Eye, Edit, MessageSquare, FileText, Calendar, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Eye, Edit, MessageSquare, FileText, Calendar, X, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 
 interface Props {
     leads: {
@@ -34,7 +35,7 @@ interface Props {
         contactado: number;
         calificado: number;
         propuesta: number;
-        cerrado: number;
+        negociacion: number; // Cambiado de "cerrado" a "negociacion"
     };
     filters?: {
         search?: string;
@@ -60,9 +61,11 @@ interface Props {
     comerciales: Comercial[];
     provincias: Provincia[];
     hay_comerciales: boolean;
+    // Nuevas props para contar comentarios por lead
+    comentariosPorLead?: Record<number, number>;
 }
 
-// Componente de calendario simple
+// Componente de calendario simple (mantener igual)
 interface CalendarProps {
     selectedDate: Date | null;
     onSelectDate: (date: Date) => void;
@@ -184,7 +187,8 @@ export default function Prospectos({
     rubros = [], 
     comerciales = [], 
     provincias = [],
-    hay_comerciales = false 
+    hay_comerciales = false,
+    comentariosPorLead = {} // Nuevo prop
 }: Props) {
     const [search, setSearch] = useState(filters?.search || '');
     const [selectedEstado, setSelectedEstado] = useState(filters?.estado_id || '');
@@ -210,6 +214,7 @@ export default function Prospectos({
     const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
     const [showModalEditar, setShowModalEditar] = useState(false);
     const [showVerNota, setShowVerNota] = useState(false);
+    const [showTiemposEstados, setShowTiemposEstados] = useState(false);
 
     // Cerrar calendarios al hacer clic fuera
     useEffect(() => {
@@ -423,23 +428,13 @@ export default function Prospectos({
         return estadosLead.find(e => e.id === estadoId);
     };
 
-    // Obtener color del género
-    const getGeneroColor = (genero: string) => {
-        const colores: Record<string, string> = {
-            masculino: 'bg-blue-100 text-blue-800',
-            femenino: 'bg-pink-100 text-pink-800',
-            otro: 'bg-purple-100 text-purple-800',
-            no_especifica: 'bg-gray-100 text-gray-800',
-        };
-        return colores[genero] || 'bg-gray-100 text-gray-800';
+
+    // Función para contar comentarios de un lead
+    const contarComentariosDeLead = (leadId: number): number => {
+        return comentariosPorLead[leadId] || 0;
     };
 
     // Funciones para abrir modales
-    const abrirVerComentarios = (lead: Lead) => {
-        setSelectedLead(lead);
-        setShowVerComentarios(true);
-    };
-
     const abrirNuevoComentario = (lead: Lead) => {
         setSelectedLead(lead);
         setShowNuevoComentario(true);
@@ -455,11 +450,17 @@ export default function Prospectos({
         setShowVerNota(true);
     };
 
+    const abrirTiemposEstados = (lead: Lead) => {
+        setSelectedLead(lead);
+        setShowTiemposEstados(true);
+    };
+
     const cerrarModales = () => {
         setShowVerComentarios(false);
         setShowNuevoComentario(false);
         setShowModalEditar(false);
         setShowVerNota(false);
+        setShowTiemposEstados(false);
         setSelectedLead(null);
     };
 
@@ -546,7 +547,7 @@ export default function Prospectos({
                     </Link>
                 </div>
                 
-                {/* Estadísticas del Pipeline - Responsive */}
+                {/* Estadísticas del Pipeline - Actualizadas */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mb-6">
                     <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 text-center hover:bg-gray-100 transition-colors cursor-pointer">
                         <h3 className="font-medium text-gray-700 text-xs md:text-sm mb-1">Nuevo</h3>
@@ -564,13 +565,13 @@ export default function Prospectos({
                         <h3 className="font-medium text-gray-700 text-xs md:text-sm mb-1">Propuesta</h3>
                         <p className="text-xl md:text-2xl font-bold text-purple-600">{estadisticas.propuesta}</p>
                     </div>
-                    <div className="p-3 bg-green-50 rounded-lg border border-green-200 text-center hover:bg-green-100 transition-colors cursor-pointer col-span-2 sm:col-span-1 md:col-auto">
-                        <h3 className="font-medium text-gray-700 text-xs md:text-sm mb-1">Cerrado</h3>
-                        <p className="text-xl md:text-2xl font-bold text-green-600">{estadisticas.cerrado}</p>
+                    <div className="p-3 bg-orange-50 rounded-lg border border-orange-200 text-center hover:bg-orange-100 transition-colors cursor-pointer col-span-2 sm:col-span-1 md:col-auto">
+                        <h3 className="font-medium text-gray-700 text-xs md:text-sm mb-1">Negociación</h3>
+                        <p className="text-xl md:text-2xl font-bold text-orange-600">{estadisticas.negociacion}</p>
                     </div>
                 </div>
                 
-                {/* Barra de búsqueda y filtros - Responsive */}
+                {/* Barra de búsqueda y filtros */}
                 <div className={`${showFilters ? 'block' : 'hidden md:block'} mb-6`}>
                     <form onSubmit={handleSearch} className="mb-4">
                         <div className="flex flex-col sm:flex-row gap-2">
@@ -628,7 +629,7 @@ export default function Prospectos({
                             ))}
                         </select>
                         
-                        {/* Filtro de fecha - con calendarios */}
+                        {/* Filtro de fecha */}
                         <div className="relative" ref={datePickerRef}>
                             <div 
                                 className={`w-full px-3 py-2 border border-gray-300 rounded text-sm flex items-center justify-between cursor-pointer ${fechaInicio || fechaFin ? 'bg-blue-50 border-blue-300' : ''}`}
@@ -882,7 +883,7 @@ export default function Prospectos({
                     )}
                 </div>
                 
-                {/* Tabla de Prospectos - Responsive */}
+                {/* Tabla de Prospectos */}
                 {leadsData.length === 0 ? (
                     <div className="text-center py-12">
                         <div className="text-gray-400 mb-4">
@@ -916,6 +917,7 @@ export default function Prospectos({
                                 const origen = getOrigen(lead.origen_id!);
                                 const estado = getEstadoLead(lead.estado_lead_id);
                                 const ultimaNota = obtenerUltimaNota(lead);
+                                const comentariosCount = contarComentariosDeLead(lead.id);
                                 
                                 return (
                                     <div key={lead.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50">
@@ -928,11 +930,6 @@ export default function Prospectos({
                                                     ID: {lead.id}
                                                 </p>
                                             </div>
-                                            <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getGeneroColor(lead.genero)}`}>
-                                                {lead.genero === 'masculino' ? '♂' : 
-                                                 lead.genero === 'femenino' ? '♀' : 
-                                                 lead.genero === 'otro' ? '⚧' : '?'}
-                                            </span>
                                         </div>
                                         
                                         <div className="space-y-2 mb-3">
@@ -979,18 +976,26 @@ export default function Prospectos({
                                         )}
                                         
                                         <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                                            <span className="text-xs text-gray-500">
-                                                Registro: {formatDate(lead.created)}
-                                            </span>
+                                            <div>
+                                                <span className="text-xs text-gray-500">
+                                                    Registro: {formatDate(lead.created)}
+                                                </span>
+                                                {comentariosCount > 0 && (
+                                                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                                        {comentariosCount} comentario{comentariosCount !== 1 ? 's' : ''}
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="flex space-x-2">
-                                                <button 
-                                                    type="button"
-                                                    onClick={() => abrirVerComentarios(lead)}
+                                                {/* Botón para ir al detalle (Show.tsx) */}
+                                                <Link 
+                                                    href={`/comercial/leads/${lead.id}`}
                                                     className="text-blue-600 hover:text-blue-800 p-1"
-                                                    title="Ver comentarios"
+                                                    title="Ver detalles"
                                                 >
                                                     <Eye className="h-4 w-4" />
-                                                </button>
+                                                </Link>
+                                                
                                                 <button 
                                                     type="button"
                                                     onClick={() => abrirEditarLead(lead)}
@@ -1020,6 +1025,18 @@ export default function Prospectos({
                                                         <FileText className="h-4 w-4" />
                                                     </button>
                                                 )}
+
+                                                {/* Botón para tiempos entre estados */}
+                                                {(usuario.ve_todas_cuentas) && (
+                                                    <button 
+                                                        type="button"
+                                                        onClick={() => abrirTiemposEstados(lead)}
+                                                        className="text-indigo-600 hover:text-indigo-800 p-1"
+                                                        title="Tiempos entre estados"
+                                                    >
+                                                        <Clock className="h-4 w-4" />
+                                                    </button>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
@@ -1038,14 +1055,15 @@ export default function Prospectos({
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Contacto
                                         </th>
-                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Género
-                                        </th>
+
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Estado
                                         </th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Origen
+                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Comentarios
                                         </th>
                                         <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Registro
@@ -1060,6 +1078,7 @@ export default function Prospectos({
                                         const origen = getOrigen(lead.origen_id!);
                                         const estado = getEstadoLead(lead.estado_lead_id);
                                         const ultimaNota = obtenerUltimaNota(lead);
+                                        const comentariosCount = contarComentariosDeLead(lead.id);
                                         
                                         return (
                                             <tr key={lead.id} className="hover:bg-gray-50">
@@ -1080,13 +1099,6 @@ export default function Prospectos({
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getGeneroColor(lead.genero)}`}>
-                                                        {lead.genero === 'masculino' ? '♂ Masculino' : 
-                                                         lead.genero === 'femenino' ? '♀ Femenino' : 
-                                                         lead.genero === 'otro' ? '⚧ Otro' : 'No especifica'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3">
                                                     {estado && (
                                                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" 
                                                               style={{ backgroundColor: `${estado.color_hex}20`, color: estado.color_hex }}>
@@ -1102,20 +1114,28 @@ export default function Prospectos({
                                                         </span>
                                                     )}
                                                 </td>
+                                                <td className="px-4 py-3">
+                                                    <div className="flex items-center">
+                                                        <span className={`text-sm font-medium ${comentariosCount > 0 ? 'text-blue-600' : 'text-gray-500'}`}>
+                                                            {comentariosCount}
+                                                        </span>
+                                                    </div>
+                                                </td>
                                                 <td className="px-4 py-3 text-sm text-gray-500">
                                                     {formatDate(lead.created)}
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <div className="flex items-center space-x-2">
-                                                        <button 
-                                                            type="button"
-                                                            onClick={() => abrirVerComentarios(lead)}
+                                                        {/* Botón para ir al detalle (Show.tsx) */}
+                                                        <Link 
+                                                            href={`/comercial/leads/${lead.id}`}
                                                             className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm px-2 py-1 hover:bg-blue-50 rounded transition-colors"
-                                                            title="Ver comentarios"
+                                                            title="Ver detalles"
                                                         >
                                                             <Eye className="h-4 w-4 mr-1" />
-                                                            Ver
-                                                        </button>
+                                                            Detalles
+                                                        </Link>
+                                                        
                                                         <button 
                                                             type="button"
                                                             onClick={() => abrirEditarLead(lead)}
@@ -1125,6 +1145,7 @@ export default function Prospectos({
                                                             <Edit className="h-4 w-4 mr-1" />
                                                             Editar
                                                         </button>
+                                                        
                                                         <button 
                                                             type="button"
                                                             onClick={() => abrirNuevoComentario(lead)}
@@ -1147,6 +1168,19 @@ export default function Prospectos({
                                                                 Nota
                                                             </button>
                                                         )}
+
+                                                        {/* Botón para tiempos entre estados */}
+                                                        {(usuario.ve_todas_cuentas) && (
+                                                            <button 
+                                                                type="button"
+                                                                onClick={() => abrirTiemposEstados(lead)}
+                                                                className="inline-flex items-center text-indigo-600 hover:text-indigo-800 text-sm px-2 py-1 hover:bg-indigo-50 rounded transition-colors"
+                                                                title="Tiempos entre estados"
+                                                            >
+                                                                <Clock className="h-4 w-4 mr-1" />
+                                                                Tiempos
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>
@@ -1156,14 +1190,14 @@ export default function Prospectos({
                             </table>
                         </div>
                         
-                        {/* Paginación - Responsive */}
+                        {/* Paginación */}
                         <div className="flex flex-col sm:flex-row items-center justify-between mt-6 gap-4">
                             <div className="text-sm text-gray-700">
                                 Mostrando <span className="font-medium">{(current_page - 1) * per_page + 1}</span> a{' '}
                                 <span className="font-medium">
                                     {Math.min(current_page * per_page, total)}
                                 </span>{' '}
-                                de <span className="font-medium">{total}</span> prospectos
+                                de <span className="font-medium">{total}</span> leads
                             </div>
                             <div className="flex items-center space-x-2">
                                 <button
@@ -1200,22 +1234,17 @@ export default function Prospectos({
                 )}
             </div>
 
-            {/* Modales separados */}
-            <VerComentariosModal
-                isOpen={showVerComentarios}
-                onClose={cerrarModales}
-                lead={selectedLead}
-                onAddNewComment={() => {
-                    setShowVerComentarios(false);
-                    setShowNuevoComentario(true);
-                }}
-            />
-            
+            {/* Modales */}
             <NuevoComentarioModal
                 isOpen={showNuevoComentario}
                 onClose={cerrarModales}
                 lead={selectedLead}
                 tiposComentario={tiposComentario}
+                estadosLead={estadosLead}
+                comentariosExistentes={selectedLead ? contarComentariosDeLead(selectedLead.id) : 0}
+                onSuccess={() => {
+                    router.reload({ only: ['leads'] });
+                }}
             />
             
             <EditarLeadModal
@@ -1236,6 +1265,12 @@ export default function Prospectos({
                 isOpen={showVerNota}
                 onClose={cerrarModales}
                 lead={selectedLead}
+            />
+
+            <TiemposEstados
+                leadId={selectedLead?.id || 0}
+                isOpen={showTiemposEstados}
+                onClose={cerrarModales}
             />
         </AppLayout>
     );

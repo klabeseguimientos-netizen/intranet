@@ -16,7 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Eye,
-  EyeOff,
   Search,
   RefreshCw,
   Menu,
@@ -158,7 +157,7 @@ export default function Index({ notificaciones, filtros, totalNoLeidas, flash }:
         const response = await notificacionesApi.eliminar(notificacionAEliminar.id);
         
         if (response.data.success) {
-            // 1. Emitir evento para actualizar dropdown inmediatamente
+            // 1. Emitir evento para actualizar dropdown
             window.dispatchEvent(new Event('notificaciones-actualizadas'));
             
             // 2. Mostrar mensaje de éxito
@@ -166,7 +165,7 @@ export default function Index({ notificaciones, filtros, totalNoLeidas, flash }:
             setAlertMessage('Notificación eliminada correctamente');
             setShowAlert(true);
             
-            // 3. Recargar solo las notificaciones y el contador
+            // 3. Recargar
             router.reload({ 
                 only: ['notificaciones', 'totalNoLeidas'],
             });
@@ -228,11 +227,14 @@ export default function Index({ notificaciones, filtros, totalNoLeidas, flash }:
       case 'contrato':
         ruta = `/comercial/cuentas/${notificacion.entidad_id}`;
         break;
+      case 'comentario':
+        ruta = `/comercial/leads/${notificacion.entidad_id}`;
+        break;
       default:
         return;
     }
     
-    // Marcar como leída al navegar si no lo está
+    // Marcar como leída al navegar
     if (!notificacion.leida) {
       marcarComoLeida(notificacion.id);
     }
@@ -296,13 +298,25 @@ export default function Index({ notificaciones, filtros, totalNoLeidas, flash }:
     }
   };
 
-  // Filtrar notificaciones por búsqueda
+  // Verificar si es notificación activa (fecha ya pasó)
+  const esNotificacionActiva = (fechaString: string): boolean => {
+    try {
+      const fechaNotificacion = new Date(fechaString);
+      const ahora = new Date();
+      return fechaNotificacion <= ahora;
+    } catch {
+      return false;
+    }
+  };
+
+  // Filtrar notificaciones por búsqueda y solo mostrar activas
   const notificacionesFiltradas = busqueda 
     ? notificaciones.data.filter(n => 
-        n.titulo.toLowerCase().includes(busqueda.toLowerCase()) ||
-        n.mensaje.toLowerCase().includes(busqueda.toLowerCase())
+        (n.titulo.toLowerCase().includes(busqueda.toLowerCase()) ||
+        n.mensaje.toLowerCase().includes(busqueda.toLowerCase())) &&
+        esNotificacionActiva(n.fecha_notificacion) // ← Filtrar solo activas
       )
-    : notificaciones.data;
+    : notificaciones.data.filter(n => esNotificacionActiva(n.fecha_notificacion)); // ← Filtrar solo activas
 
   return (
     <AppLayout title="Notificaciones">
@@ -384,9 +398,12 @@ export default function Index({ notificaciones, filtros, totalNoLeidas, flash }:
                 </h1>
                 <p className="text-gray-600 mt-1 text-sm sm:text-base">
                   {totalNoLeidas > 0 
-                    ? `${totalNoLeidas} notificación(es) sin leer`
-                    : 'Todas las notificaciones están leídas'
+                    ? `${totalNoLeidas} notificación(es) activa(s) sin leer`
+                    : 'Todas las notificaciones activas están leídas'
                   }
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  * Solo se muestran notificaciones cuya fecha programada ya llegó
                 </p>
               </div>
               
@@ -480,7 +497,7 @@ export default function Index({ notificaciones, filtros, totalNoLeidas, flash }:
                 type="text"
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                placeholder="Buscar en notificaciones..."
+                placeholder="Buscar en notificaciones activas..."
                 className="w-full pl-9 sm:pl-10 pr-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -582,9 +599,12 @@ export default function Index({ notificaciones, filtros, totalNoLeidas, flash }:
               <Bell className="h-10 w-10 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-500 text-sm sm:text-base">
                 {busqueda || Object.values(filtrosLocales).some(v => v) 
-                  ? 'No se encontraron notificaciones con esos filtros' 
-                  : 'No hay notificaciones'
+                  ? 'No se encontraron notificaciones activas con esos filtros' 
+                  : 'No hay notificaciones activas'
                 }
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                Las notificaciones programadas aparecerán cuando llegue su fecha
               </p>
               {(busqueda || Object.values(filtrosLocales).some(v => v)) && (
                 <button
@@ -682,12 +702,12 @@ export default function Index({ notificaciones, filtros, totalNoLeidas, flash }:
                 ))}
               </div>
               
-              {/* Paginación (solo si hay paginación desde el backend) */}
+              {/* Paginación */}
               {notificaciones.links && notificaciones.links.length > 3 && (
                 <div className="px-3 sm:px-4 py-3 border-t border-gray-200 sm:px-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-0">
                     <div className="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
-                      Mostrando {notificaciones.data.length} de {notificaciones.meta.total} notificaciones
+                      Mostrando {notificaciones.data.length} de {notificaciones.meta.total} notificaciones activas
                     </div>
                     
                     <div className="flex justify-center space-x-1 sm:space-x-2 overflow-x-auto">

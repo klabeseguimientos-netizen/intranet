@@ -66,7 +66,7 @@ export default function SidebarNav({ className = '', auth }: SidebarNavProps) {
                     name: 'Parámetros Generales',
                     icon: <Cog size={14} />,
                     children: [
-                        { id: 'estados-contactos', name: 'Estados de contactos', href: '/config/parametros/estados-contactos', icon: <Phone size={12} /> },
+                        { id: 'estados-lead', name: 'Estados de leads', href: '/config/parametros/estados-lead', icon: <Phone size={12} /> },
                         { id: 'medios-pago', name: 'Medios de pago', href: '/config/parametros/medios-pago', icon: <CreditCardIcon size={12} /> },
                         { id: 'motivos-baja', name: 'Motivos baja', href: '/config/parametros/motivos-baja', icon: <Lightbulb size={12} /> },
                         { id: 'origen-prospecto', name: 'Origen de prospecto', href: '/config/parametros/origen-prospecto', icon: <Target size={12} /> },
@@ -139,8 +139,8 @@ export default function SidebarNav({ className = '', auth }: SidebarNavProps) {
                     ]
                 },
                 { id: 'presupuestos', name: 'Presupuestos', href: '/comercial/presupuestos', icon: <FileText size={14} /> },
-                { id: 'recordatorios', name: 'Recordatorios', href: '/comercial/recordatorios', icon: <Calendar size={14} /> },
-                { id: 'prospectos', name: 'Prospectos', href: '/comercial/prospectos', icon: <Target size={14} /> },
+                { id: 'recordatorios', name: 'Recordatorios', href: '/notificaciones/programadas', icon: <Calendar size={14} /> },
+                { id: 'prospectos', name: 'Prospectos & Leads', href: '/comercial/prospectos', icon: <Target size={14} /> },
             ]
         },
         {
