@@ -9,10 +9,25 @@ class Rol extends Model
     protected $table = 'roles';
     protected $primaryKey = 'id';
     
-    protected $fillable = ['nombre', 'descripcion', 'activo'];
+    public $timestamps = false;
+    
+    protected $fillable = [
+        'nombre',
+        'descripcion',
+        'activo'
+    ];
+    
+    protected $casts = [
+        'activo' => 'boolean'
+    ];
     
     public function usuarios()
     {
-        return $this->hasMany(Usuario::class, 'rol_id');
+        return $this->hasMany(Usuario::class);
+    }
+    
+    public function scopeActivo($query)
+    {
+        return $query->where('activo', true);
     }
 }

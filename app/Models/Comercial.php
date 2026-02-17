@@ -1,5 +1,4 @@
 <?php
-// app/Models/Comercial.php
 
 namespace App\Models;
 
@@ -36,25 +35,36 @@ class Comercial extends Model
         'modified' => 'datetime'
     ];
     
-    // Relación con personal
     public function personal()
     {
-        return $this->belongsTo(Personal::class, 'personal_id');
+        return $this->belongsTo(Personal::class);
     }
     
-    // Relación con leads (usando prefijo_id)
     public function leads()
     {
         return $this->hasMany(Lead::class, 'prefijo_id', 'prefijo_id');
     }
     
-    // Scope para activos
-    public function scopeActivo($query)
+    public function creadoPor()
     {
-        return $query->where('activo', 1);
+        return $this->belongsTo(Usuario::class, 'created_by');
     }
     
-    // Accessor para nombre completo del comercial
+    public function modificadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'modified_by');
+    }
+    
+    public function eliminadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'deleted_by');
+    }
+    
+    public function scopeActivo($query)
+    {
+        return $query->where('activo', true);
+    }
+    
     public function getNombreCompletoAttribute()
     {
         if ($this->personal) {

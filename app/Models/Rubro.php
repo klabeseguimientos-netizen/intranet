@@ -6,15 +6,33 @@ use Illuminate\Database\Eloquent\Model;
 
 class Rubro extends Model
 {
-    public $timestamps = false;
-
     protected $table = 'rubros';
     protected $primaryKey = 'id';
     
-    protected $fillable = ['nombre'];
+    public $timestamps = false;
+    
+    protected $fillable = [
+        'nombre',
+        'descripcion',
+        'activo'
+    ];
+    
+    protected $casts = [
+        'activo' => 'boolean'
+    ];
     
     public function leads()
     {
-        return $this->hasMany(Lead::class, 'rubro_id');
+        return $this->hasMany(Lead::class);
+    }
+    
+    public function empresas()
+    {
+        return $this->hasMany(Empresa::class);
+    }
+    
+    public function scopeActivo($query)
+    {
+        return $query->where('activo', true);
     }
 }

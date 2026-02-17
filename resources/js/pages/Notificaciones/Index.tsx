@@ -29,7 +29,7 @@ interface Notificacion {
   titulo: string;
   mensaje: string;
   tipo: string;
-  entidad_tipo: 'lead' | 'presupuesto' | 'contrato' | 'comentario';
+  entidad_tipo: 'lead' | 'presupuesto' | 'contrato' | 'comentario' | 'seguimiento_perdida';
   entidad_id: number | null;
   leida: boolean;
   fecha_notificacion: string;
@@ -230,6 +230,9 @@ export default function Index({ notificaciones, filtros, totalNoLeidas, flash }:
       case 'comentario':
         ruta = `/comercial/leads/${notificacion.entidad_id}`;
         break;
+      case 'seguimiento_perdida':
+        ruta = `/comercial/seguimientos-perdida`;
+        break;
       default:
         return;
     }
@@ -258,6 +261,8 @@ export default function Index({ notificaciones, filtros, totalNoLeidas, flash }:
         return <Users className="h-5 w-5 text-green-500" />;
       case 'comentario_recordatorio':
         return <CheckCircle className="h-5 w-5 text-purple-500" />;
+      case 'lead_posible_recontacto':
+      return <RefreshCw className="h-5 w-5 text-cyan-500" />;
       default:
         return <Bell className="h-5 w-5 text-gray-500" />;
     }
@@ -528,6 +533,7 @@ export default function Index({ notificaciones, filtros, totalNoLeidas, flash }:
                   <option value="presupuesto_vencido">Presupuesto vencido</option>
                   <option value="contrato_por_vencer">Contrato por vencer</option>
                   <option value="comentario_recordatorio">Recordatorio</option>
+                  <option value="lead_posible_recontacto">Posible recontacto lead</option>
                 </select>
               </div>
               

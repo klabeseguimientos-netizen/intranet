@@ -1,5 +1,4 @@
 <?php
-// app/Models/Tecnico.php 
 
 namespace App\Models;
 
@@ -9,10 +8,8 @@ class Tecnico extends Model
 {
     protected $table = 'tecnicos';
     
-    // IMPORTANTE: Desactivar timestamps automáticos de Laravel
     public $timestamps = false;
     
-    // Especificar nombres personalizados para las columnas de fecha
     const CREATED_AT = 'created';
     const UPDATED_AT = 'modified';
     
@@ -37,13 +34,25 @@ class Tecnico extends Model
         'created' => 'datetime',
         'modified' => 'datetime',
         'deleted_at' => 'datetime',
-        'created_by' => 'integer',
-        'modified_by' => 'integer',
-        'deleted_by' => 'integer',
     ];
-
+    
     public function personal()
     {
-        return $this->belongsTo(Personal::class, 'personal_id');
+        return $this->belongsTo(Personal::class);
+    }
+    
+    public function creadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'created_by');
+    }
+    
+    public function modificadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'modified_by');
+    }
+    
+    public function eliminadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'deleted_by');
     }
 }

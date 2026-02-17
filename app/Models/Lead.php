@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Lead extends Model
 {
@@ -39,46 +42,124 @@ class Lead extends Model
         'modified' => 'datetime'
     ];
     
+    protected $appends = ['localidad_completa'];
+    
     // Relaciones
-    public function origen()
+    public function origen(): BelongsTo
     {
         return $this->belongsTo(OrigenContacto::class, 'origen_id');
     }
     
-    public function estadoLead()
+    public function estadoLead(): BelongsTo
     {
         return $this->belongsTo(EstadoLead::class, 'estado_lead_id');
     }
     
-    public function localidad()
+    public function localidad(): BelongsTo
     {
-        return $this->belongsTo(Localidad::class, 'localidad_id')
-                    ->with('provincia'); // Cargar provincia automáticamente
+        return $this->belongsTo(Localidad::class, 'localidad_id');
     }
     
-    public function rubro()
+    public function rubro(): BelongsTo
     {
         return $this->belongsTo(Rubro::class, 'rubro_id');
     }
     
-    public function comercial()
+    public function prefijo(): BelongsTo
+    {
+        return $this->belongsTo(Prefijo::class, 'prefijo_id');
+    }
+    
+    public function comercial(): BelongsTo
     {
         return $this->belongsTo(Comercial::class, 'prefijo_id', 'prefijo_id');
     }
     
-    // Accessor para la localidad completa
-    public function getLocalidadCompletaAttribute()
+    public function notas(): HasMany
+    {
+        return $this->hasMany(NotaLead::class, 'lead_id');
+    }
+    
+    public function comentarios(): HasMany
+    {
+        return $this->hasMany(Comentario::class, 'lead_id');
+    }
+    
+    public function comentariosLegacy(): HasMany
+    {
+        return $this->hasMany(ComentarioLegacy::class, 'lead_id');
+    }
+    
+    public function notificaciones(): HasMany
+    {
+        return $this->hasMany(Notificacion::class, 'entidad_id')
+            ->where('entidad_tipo', 'lead');
+    }
+    
+    public function auditorias(): HasMany
+    {
+        return $this->hasMany(AuditoriaLog::class, 'registro_id')
+            ->where('tabla_afectada', 'leads');
+    }
+    
+    public function usuarioCreacion(): BelongsTo
+    {
+        return $this->belongsTo(Usuario::class, 'created_by');
+    }
+    
+    public function seguimientoPerdida(): HasOne
+    {
+    return $this->hasOne(SeguimientoPerdida::class, 'lead_id')
+        ->whereNull('deleted_at')
+        ->latest('created');
+    }
+
+    // Accessors
+    public function getLocalidadCompletaAttribute(): ?string
     {
         if ($this->localidad && $this->localidad->provincia) {
             return "{$this->localidad->localidad}, {$this->localidad->provincia->provincia}";
         }
+        
+        if ($this->localidad) {
+            return $this->localidad->localidad;
+        }
+        
         return null;
     }
-
-    public function notas()
-{
-    return $this->hasMany(NotaLead::class, 'lead_id')
-        ->whereNull('deleted_at')
-        ->orderBy('created', 'desc');
-}
+    
+    // Scopes
+    public function scopeActivo($query)
+    {
+        return $query->where('es_activo', true);
+    }
+    
+    public function scopeNoClientes($query)
+    {
+        return $query->where('es_cliente', false);
+    }
+    
+    public function scopeConPrefijo($query, $prefijoId)
+    {
+        return $query->where('prefijo_id', $prefijoId);
+    }
+    
+    // Métodos de negocio
+    public function asignarPrefijo(?int $prefijoId): void
+    {
+        $this->prefijo_id = $prefijoId;
+        $this->save();
+    }
+    
+    public function cambiarEstado(int $estadoId, int $usuarioId): void
+    {
+        $this->estado_lead_id = $estadoId;
+        $this->modified_by = $usuarioId;
+        $this->save();
+    }
+    
+    public function presupuestosLegacy()
+    {
+    return $this->hasMany(PresupuestoLegacy::class, 'lead_id');
+    }
 }

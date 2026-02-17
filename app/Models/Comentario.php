@@ -11,7 +11,6 @@ class Comentario extends Model
     
     protected $table = 'comentarios';
     
-    // Deshabilitar timestamps automáticos de Laravel
     public $timestamps = false;
     
     protected $fillable = [
@@ -23,19 +22,11 @@ class Comentario extends Model
         'deleted_by'
     ];
     
-    protected $dates = [
-        'created',
-        'deleted_at'
-    ];
-    
     protected $casts = [
         'created' => 'datetime',
         'deleted_at' => 'datetime'
     ];
     
-    /**
-     * Sobreescribir el método create para manejar el campo 'created'
-     */
     protected static function boot()
     {
         parent::boot();
@@ -47,27 +38,23 @@ class Comentario extends Model
         });
     }
     
-    /**
-     * Relación con el lead
-     */
     public function lead()
     {
-        return $this->belongsTo(Lead::class, 'lead_id');
+        return $this->belongsTo(Lead::class);
     }
     
-    /**
-     * Relación con el usuario que creó el comentario
-     */
     public function usuario()
     {
-        return $this->belongsTo(usuario::class, 'usuario_id');
+        return $this->belongsTo(Usuario::class);
     }
     
-    /**
-     * Relación con el tipo de comentario
-     */
     public function tipoComentario()
     {
-        return $this->belongsTo(TipoComentario::class, 'tipo_comentario_id');
+        return $this->belongsTo(TipoComentario::class);
+    }
+    
+    public function eliminadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'deleted_by');
     }
 }

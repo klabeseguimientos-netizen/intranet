@@ -1,5 +1,4 @@
 <?php
-// app/Models/Vehiculo.php
 
 namespace App\Models;
 
@@ -8,6 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Vehiculo extends Model
 {
     protected $table = 'vehiculos';
+    
+    public $timestamps = false;
     
     protected $fillable = [
         'codigo_alfa',
@@ -31,7 +32,7 @@ class Vehiculo extends Model
     
     public function empresa()
     {
-        return $this->belongsTo(Empresa::class, 'empresa_id');
+        return $this->belongsTo(Empresa::class);
     }
     
     public function abonos()

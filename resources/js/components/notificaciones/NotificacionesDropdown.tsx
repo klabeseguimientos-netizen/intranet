@@ -21,7 +21,7 @@ interface Notificacion {
   titulo: string;
   mensaje: string;
   tipo: string;
-  entidad_tipo: 'lead' | 'presupuesto' | 'contrato' | 'comentario';
+  entidad_tipo: 'lead' | 'presupuesto' | 'contrato' | 'comentario' | 'seguimiento_perdida';
   entidad_id: number | null;
   leida: boolean;
   fecha_notificacion: string;
@@ -177,6 +177,9 @@ const NotificacionesDropdown: React.FC = () => {
       case 'comentario':
         ruta = `/comercial/leads/${notificacion.entidad_id}`;
         break;
+      case 'seguimiento_perdida':
+        ruta = `/comercial/leads-perdidos/${notificacion.entidad_id}`;
+        break;  
       default:
         return;
     }
@@ -210,6 +213,8 @@ const NotificacionesDropdown: React.FC = () => {
         return <CheckCircle className="h-5 w-5 text-purple-500" />;
       default:
         return <Bell className="h-5 w-5 text-gray-500" />;
+      case 'lead_posible_recontacto':
+        return <RefreshCw className="h-5 w-5 text-cyan-500" />;
     }
   };
   

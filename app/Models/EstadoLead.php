@@ -1,5 +1,4 @@
 <?php
-// app/Models/EstadoLead.php
 
 namespace App\Models;
 
@@ -8,6 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class EstadoLead extends Model
 {
     protected $table = 'estados_lead';
+    
+    protected $fillable = [
+        'nombre',
+        'color_hex',
+        'tipo',
+        'activo'
+    ];
+    
+    protected $casts = [
+        'activo' => 'boolean'
+    ];
     
     public function leads()
     {

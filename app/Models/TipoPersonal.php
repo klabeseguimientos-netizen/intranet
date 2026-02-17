@@ -1,5 +1,4 @@
 <?php
-// app/Models/TipoPersonal.php
 
 namespace App\Models;
 
@@ -9,17 +8,19 @@ class TipoPersonal extends Model
 {
     protected $table = 'tipo_personal';
     
-    protected $casts = [
-        'activo' => 'boolean',
-    ];
-
+    public $timestamps = false;
+    
     protected $fillable = [
         'nombre',
         'activo',
     ];
-
+    
+    protected $casts = [
+        'activo' => 'boolean',
+    ];
+    
     public function personal()
     {
-        return $this->hasMany(Personal::class, 'tipo_personal_id');
+        return $this->hasMany(Personal::class);
     }
 }

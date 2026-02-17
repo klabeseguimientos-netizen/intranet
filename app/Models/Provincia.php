@@ -3,16 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Provincia extends Model
 {
-    
     protected $table = 'provincias';
     protected $primaryKey = 'id';
     
     const CREATED_AT = 'created';
-    const UPDATED_AT = null; // No hay campo modified
+    const UPDATED_AT = null;
     
     protected $fillable = [
         'provincia',
@@ -24,27 +22,24 @@ class Provincia extends Model
         'created' => 'datetime'
     ];
     
-    // Relación con localidades
     public function localidades()
     {
-        return $this->hasMany(Localidad::class, 'provincia_id')
-                    ->where('activo', 1)
+        return $this->hasMany(Localidad::class)
+                    ->where('activo', true)
                     ->orderBy('localidad');
     }
     
     public function localidadesTodas()
     {
-        return $this->hasMany(Localidad::class, 'provincia_id')
+        return $this->hasMany(Localidad::class)
                     ->orderBy('localidad');
     }
     
-    // Scope para provincias activas
     public function scopeActivo($query)
     {
-        return $query->where('activo', 1);
+        return $query->where('activo', true);
     }
     
-    // Scope para ordenar por nombre
     public function scopeOrdenar($query, $orden = 'asc')
     {
         return $query->orderBy('provincia', $orden);

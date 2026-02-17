@@ -5,11 +5,14 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Usuario extends Authenticatable
 {
     use Notifiable, SoftDeletes;
-
+    
     protected $table = 'usuarios';
     protected $primaryKey = 'id';
     
@@ -41,36 +44,53 @@ class Usuario extends Authenticatable
         'deleted_at' => 'datetime'
     ];
     
-    // Cargar la relación rol automáticamente
     protected $with = ['rol', 'personal'];
     
-    // Agregar accessor para rol_nombre
     protected $appends = ['rol_nombre', 'nombre_completo', 'es_comercial'];
     
-    // Relaciones
-    public function rol()
+    public function rol(): BelongsTo
     {
-        return $this->belongsTo(Rol::class, 'rol_id');
+        return $this->belongsTo(Rol::class);
     }
     
-    public function personal()
+    public function personal(): BelongsTo
     {
-        return $this->belongsTo(Personal::class, 'personal_id');
+        return $this->belongsTo(Personal::class);
     }
     
-    public function comercial()
+    public function comercial(): HasOne
     {
         return $this->hasOne(Comercial::class, 'personal_id', 'personal_id');
     }
     
-    // Accessor para rol_nombre
-    public function getRolNombreAttribute()
+    public function prefijosAsignados(): HasMany
+    {
+        return $this->hasMany(UsuarioPrefijo::class)
+            ->where('activo', true)
+            ->whereNull('deleted_at');
+    }
+    
+    public function comentarios(): HasMany
+    {
+        return $this->hasMany(Comentario::class);
+    }
+    
+    public function notas(): HasMany
+    {
+        return $this->hasMany(NotaLead::class);
+    }
+    
+    public function notificaciones(): HasMany
+    {
+        return $this->hasMany(Notificacion::class);
+    }
+    
+    public function getRolNombreAttribute(): string
     {
         return $this->rol ? $this->rol->nombre : 'Sin rol';
     }
     
-    // Accessor para nombre completo
-    public function getNombreCompletoAttribute()
+    public function getNombreCompletoAttribute(): string
     {
         if ($this->personal) {
             return $this->personal->nombre . ' ' . $this->personal->apellido;
@@ -78,39 +98,17 @@ class Usuario extends Authenticatable
         return $this->nombre_usuario;
     }
     
-    // Accessor para verificar si es comercial (rol_id = 5)
-    public function getEsComercialAttribute()
+    public function getEsComercialAttribute(): bool
     {
         return $this->rol_id == 5;
     }
     
-    // Scope para usuarios activos
-    public function scopeActivo($query)
-    {
-        return $query->where('activo', 1);
-    }
-        /**
-     * Obtener los prefijos asignados al usuario
-     */
-    public function prefijosAsignados()
-    {
-        return $this->hasMany(UsuarioPrefijo::class, 'usuario_id')
-            ->where('activo', true)
-            ->whereNull('deleted_at');
-    }
-    
-    /**
-     * Obtener los IDs de prefijos asignados al usuario
-     */
-    public function getPrefijosIdsAttribute()
+    public function getPrefijosIdsAttribute(): array
     {
         return $this->prefijosAsignados()->pluck('prefijo_id')->toArray();
     }
     
-    /**
-     * Verificar si el usuario puede ver un prefijo específico
-     */
-    public function puedeVerPrefijo($prefijoId)
+    public function puedeVerPrefijo($prefijoId): bool
     {
         if ($this->ve_todas_cuentas) {
             return true;
@@ -118,5 +116,9 @@ class Usuario extends Authenticatable
         
         return in_array($prefijoId, $this->prefijos_ids);
     }
-
+    
+    public function scopeActivo($query)
+    {
+        return $query->where('activo', true);
+    }
 }

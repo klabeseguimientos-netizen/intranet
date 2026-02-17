@@ -1,5 +1,4 @@
 <?php
-// app/Models/Personal.php
 
 namespace App\Models;
 
@@ -9,13 +8,8 @@ class Personal extends Model
 {
     protected $table = 'personal';
     
-    protected $casts = [
-        'activo' => 'boolean',
-        'fecha_nacimiento' => 'date',
-        'created' => 'datetime',
-        'modified' => 'datetime',
-    ];
-
+    public $timestamps = false;
+    
     protected $fillable = [
         'nombre',
         'apellido',
@@ -27,29 +21,53 @@ class Personal extends Model
         'created_by',
         'modified_by',
     ];
-
+    
+    protected $casts = [
+        'activo' => 'boolean',
+        'fecha_nacimiento' => 'date',
+        'created' => 'datetime',
+        'modified' => 'datetime',
+    ];
+    
+    protected $appends = ['nombre_completo'];
+    
     public function tipoPersonal()
     {
-        return $this->belongsTo(TipoPersonal::class, 'tipo_personal_id');
-    }
-        public function tecnico()
-    {
-        return $this->hasOne(Tecnico::class, 'personal_id');
-    }
-        /**
-     * Obtener el usuario asociado
-     */
-    public function usuario()
-    {
-        return $this->hasOne(Usuario::class, 'personal_id');
+        return $this->belongsTo(TipoPersonal::class);
     }
     
-    /**
-     * Obtener el nombre completo
-     */
+    public function tecnico()
+    {
+        return $this->hasOne(Tecnico::class);
+    }
+    
+    public function usuario()
+    {
+        return $this->hasOne(Usuario::class);
+    }
+    
+    public function comercial()
+    {
+        return $this->hasOne(Comercial::class);
+    }
+    
+    public function creadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'created_by');
+    }
+    
+    public function modificadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'modified_by');
+    }
+    
     public function getNombreCompletoAttribute()
     {
         return $this->nombre . ' ' . $this->apellido;
     }
-
+    
+    public function scopeActivo($query)
+    {
+        return $query->where('activo', true);
+    }
 }

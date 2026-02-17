@@ -1,5 +1,4 @@
 <?php
-// app/Models/EmpresaContacto.php
 
 namespace App\Models;
 
@@ -9,14 +8,8 @@ class EmpresaContacto extends Model
 {
     protected $table = 'empresa_contactos';
     
-    protected $casts = [
-        'es_activo' => 'boolean',
-        'es_contacto_principal' => 'boolean',
-        'fecha_nacimiento' => 'date',
-        'created' => 'datetime',
-        'modified' => 'datetime',
-    ];
-
+    public $timestamps = false;
+    
     protected $fillable = [
         'empresa_id',
         'lead_id',
@@ -32,14 +25,32 @@ class EmpresaContacto extends Model
         'created_by',
         'modified_by',
     ];
-
+    
+    protected $casts = [
+        'es_activo' => 'boolean',
+        'es_contacto_principal' => 'boolean',
+        'fecha_nacimiento' => 'date',
+        'created' => 'datetime',
+        'modified' => 'datetime',
+    ];
+    
     public function lead()
     {
-        return $this->belongsTo(Lead::class, 'lead_id');
+        return $this->belongsTo(Lead::class);
     }
-
+    
     public function empresa()
     {
-        return $this->belongsTo(Empresa::class, 'empresa_id');
+        return $this->belongsTo(Empresa::class);
+    }
+    
+    public function creadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'created_by');
+    }
+    
+    public function modificadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'modified_by');
     }
 }

@@ -2,16 +2,15 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class UsuarioPrefijo extends Model
 {
     use HasFactory, SoftDeletes;
-
-    protected $table = 'usuario_prefijos';
     
+    protected $table = 'usuario_prefijos';
     protected $primaryKey = 'id';
     
     public $timestamps = false;
@@ -32,18 +31,22 @@ class UsuarioPrefijo extends Model
         'deleted_at' => 'datetime'
     ];
     
-    /**
-     * Obtener el usuario asociado
-     */
     public function usuario()
     {
-        return $this->belongsTo(Usuario::class, 'usuario_id');
+        return $this->belongsTo(Usuario::class);
     }
     
-    /**
-     * Obtener los prefijos activos de un usuario
-     */
-    public static function prefijosActivosUsuario($usuarioId)
+    public function creadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'created_by');
+    }
+    
+    public function eliminadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'deleted_by');
+    }
+    
+    public static function prefijosActivosUsuario($usuarioId): array
     {
         return self::where('usuario_id', $usuarioId)
             ->where('activo', true)

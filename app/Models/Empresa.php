@@ -1,5 +1,4 @@
 <?php
-// app/Models/Empresa.php
 
 namespace App\Models;
 
@@ -9,12 +8,8 @@ class Empresa extends Model
 {
     protected $table = 'empresas';
     
-    protected $casts = [
-        'es_activo' => 'boolean',
-        'created' => 'datetime',
-        'modified' => 'datetime',
-    ];
-
+    public $timestamps = false;
+    
     protected $fillable = [
         'prefijo_id',
         'numeroalfa',
@@ -34,35 +29,50 @@ class Empresa extends Model
         'created_by',
         'modified_by',
     ];
-
-        public function vehiculos()
+    
+    protected $casts = [
+        'es_activo' => 'boolean',
+        'created' => 'datetime',
+        'modified' => 'datetime',
+    ];
+    
+    public function vehiculos()
     {
-        return $this->hasMany(Vehiculo::class, 'empresa_id');
+        return $this->hasMany(Vehiculo::class);
     }
     
     public function vehiculosConAbonos()
     {
-        return $this->hasMany(Vehiculo::class, 'empresa_id')
-                    ->with(['abonosActivos']);
+        return $this->hasMany(Vehiculo::class)->with(['abonosActivos']);
     }
-
+    
     public function contactos()
     {
-        return $this->hasMany(EmpresaContacto::class, 'empresa_id');
+        return $this->hasMany(EmpresaContacto::class);
     }
     
     public function contactosActivos()
     {
-        return $this->hasMany(EmpresaContacto::class, 'empresa_id')
-                    ->where('es_activo', 1)
+        return $this->hasMany(EmpresaContacto::class)
+                    ->where('es_activo', true)
                     ->whereNull('deleted_at');
     }
     
     public function contactoPrincipal()
     {
-        return $this->hasOne(EmpresaContacto::class, 'empresa_id')
-                    ->where('es_contacto_principal', 1)
-                    ->where('es_activo', 1)
+        return $this->hasOne(EmpresaContacto::class)
+                    ->where('es_contacto_principal', true)
+                    ->where('es_activo', true)
                     ->whereNull('deleted_at');
+    }
+    
+    public function creadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'created_by');
+    }
+    
+    public function modificadoPor()
+    {
+        return $this->belongsTo(Usuario::class, 'modified_by');
     }
 }

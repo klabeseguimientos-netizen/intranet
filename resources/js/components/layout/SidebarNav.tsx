@@ -78,13 +78,7 @@ export default function SidebarNav({ className = '', auth }: SidebarNavProps) {
                     id: 'gestion-tarifas',
                     name: 'Gestión de Tarifas',
                     icon: <Tag size={14} />,
-                    children: [
-                        { id: 'abonos', name: 'Abonos', href: '/config/tarifas/abonos', icon: <CreditCard size={12} /> },
-                        { id: 'accesorios', name: 'Accesorios', href: '/config/tarifas/accesorios', icon: <Package size={12} /> },
-                        { id: 'convenios', name: 'Convenios', href: '/config/tarifas/convenios', icon: <FileCheck size={12} /> },
-                        { id: 'servicios', name: 'Servicios', href: '/config/tarifas/servicios', icon: <Truck size={12} /> },
-                        { id: 'tasas', name: 'Tasas', href: '/config/tarifas/tasas', icon: <DollarSign size={12} /> },
-                    ]
+                    href: '/config/tarifas',
                 },
                 {
                     id: 'gestion-usuarios',
@@ -141,6 +135,7 @@ export default function SidebarNav({ className = '', auth }: SidebarNavProps) {
                 { id: 'presupuestos', name: 'Presupuestos', href: '/comercial/presupuestos', icon: <FileText size={14} /> },
                 { id: 'recordatorios', name: 'Recordatorios', href: '/notificaciones/programadas', icon: <Calendar size={14} /> },
                 { id: 'prospectos', name: 'Prospectos & Leads', href: '/comercial/prospectos', icon: <Target size={14} /> },
+                { id: 'perdidas', name: 'Leads perdidos', href: '/comercial/leads-perdidos', icon: <Receipt size={14} /> },
             ]
         },
         {

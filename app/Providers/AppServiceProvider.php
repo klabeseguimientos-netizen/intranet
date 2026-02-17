@@ -7,6 +7,9 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use App\Services\Lead\LeadStatisticsService;
+use App\Services\Lead\LeadQueryService;
+use App\Services\Lead\LeadPresupuestoLegacyService; // Importar nuevo servicio
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -15,7 +18,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(LeadStatisticsService::class);
+        $this->app->singleton(LeadQueryService::class);
+        $this->app->singleton(LeadPresupuestoLegacyService::class); // Registrar nuevo servicio
+        
+        // También podemos registrar el LeadDetailsService aquí si queremos
+        $this->app->singleton(\App\Services\Lead\LeadDetailsService::class);
     }
 
     /**

@@ -7,10 +7,13 @@ export interface Origen {
 }
 
 export interface EstadoLead {
-    id: number;
-    nombre: string;
-    tipo?: string; // Opcional
-    color_hex?: string; // Opcional
+  id: number;
+  nombre: string;
+  color_hex: string;
+  tipo: string;  // ← Cambiar de tipo?: string a tipo: string
+  activo: boolean;
+  created?: string;
+  modified?: string;
 }
 
 export interface Localidad {
@@ -71,12 +74,17 @@ export interface Lead {
         id: number;
         nombre: string;
     };
-    estadoLead?: {
+    estado_lead?: {
         id: number;
         nombre: string;
         color_hex: string;
     };
-    notas?: NotaLead[]; // Añadir esta línea
+    prefijo?: {  
+        id: number;
+        codigo: string;
+        descripcion?: string;
+    };
+    notas?: NotaLead[]; 
 }
 
 // Añade esta interfaz para las notas

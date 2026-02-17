@@ -3,7 +3,7 @@ import axios from 'axios';
 const notificacionesApi = {
   // Obtener notificaciones NO LEÍDAS para dropdown
   getNoLeidas: (params?: any) => {
-    return axios.get('/ajax/notificaciones', { 
+    return axios.get('/notificaciones/ajax', { 
       params: {
         ...params,
         limit: params?.limit || 10
@@ -14,7 +14,7 @@ const notificacionesApi = {
   
   // Obtener TODAS las notificaciones (incluyendo leídas) para vista completa
   getTodas: (params?: any) => {
-    return axios.get('/ajax/notificaciones', { 
+    return axios.get('/notificaciones/ajax', { 
       params: {
         ...params,
         todas: true,
@@ -25,22 +25,22 @@ const notificacionesApi = {
   
   // Marcar como leída
   marcarLeida: (id: number) => {
-    return axios.post(`/ajax/notificaciones/${id}/marcar-leida`);
+    return axios.post(`/notificaciones/ajax/${id}/marcar-leida`);
   },
   
   // Marcar todas como leídas
   marcarTodasLeidas: () => {
-    return axios.post('/ajax/notificaciones/marcar-todas-leidas');
+    return axios.post('/notificaciones/ajax/marcar-todas-leidas');
   },
   
   // Eliminar notificación
   eliminar: (id: number) => {
-    return axios.delete(`/ajax/notificaciones/${id}`);
+    return axios.delete(`/notificaciones/ajax/${id}`);
   },
   
   // Obtener contador
   getContador: () => {
-    return axios.get('/ajax/notificaciones/contador');
+    return axios.get('/notificaciones/ajax/contador');
   }
 };
 

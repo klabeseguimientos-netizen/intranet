@@ -17,42 +17,23 @@ class NotificacionController extends Controller
     {
         $usuarioId = Auth::id();
         
-        // Query base - SOLO NOTIFICACIONES ACTIVAS
-        $query = DB::table('notificaciones')
-            ->where('usuario_id', $usuarioId)
-            ->whereNull('deleted_at')
-            ->where('fecha_notificacion', '<=', Carbon::now())
-            ->orderBy('fecha_notificacion', 'desc');
+        // Query base - NOTIFICACIONES ACTIVAS (fecha <= ahora)
+        $query = $this->baseQuery($usuarioId)
+            ->where('fecha_notificacion', '<=', Carbon::now());
         
         // Aplicar filtros
-        if ($request->filled('leida')) {
-            $query->where('leida', $request->leida === 'true' ? 1 : 0);
-        }
-        
-        if ($request->filled('tipo')) {
-            $query->where('tipo', $request->tipo);
-        }
-        
-        if ($request->filled('prioridad')) {
-            $query->where('prioridad', $request->prioridad);
-        }
+        $this->aplicarFiltros($query, $request);
         
         // Paginación
         $notificaciones = $query->paginate(20);
         
-        // Convertir booleanos
+        // Transformar resultados
         $notificaciones->getCollection()->transform(function($notificacion) {
-            $notificacion->leida = (bool) $notificacion->leida;
-            return $notificacion;
+            return $this->transformarNotificacion($notificacion);
         });
         
-        // Contar no leídas ACTIVAS
-        $totalNoLeidas = DB::table('notificaciones')
-            ->where('usuario_id', $usuarioId)
-            ->where('leida', false)
-            ->whereNull('deleted_at')
-            ->where('fecha_notificacion', '<=', Carbon::now())
-            ->count();
+        // Contar no leídas activas
+        $totalNoLeidas = $this->contarNoLeidas($usuarioId);
         
         return Inertia::render('Notificaciones/Index', [
             'notificaciones' => $notificaciones,
@@ -62,187 +43,17 @@ class NotificacionController extends Controller
     }
     
     /**
-     * API para dropdown - solo notificaciones NO LEÍDAS
+     * Vista de notificaciones programadas (futuras)
      */
-    public function ajaxIndex(Request $request)
-    {
-        $usuarioId = Auth::id();
-        
-        // Query base - SOLO NO LEÍDAS ACTIVAS
-        $query = DB::table('notificaciones')
-            ->where('usuario_id', $usuarioId)
-            ->whereNull('deleted_at')
-            ->where('fecha_notificacion', '<=', Carbon::now())
-            ->where('leida', false)  // ← SOLO NO LEÍDAS
-            ->orderBy('fecha_notificacion', 'desc');
-        
-        // Si se solicita todas (incluyendo leídas) para vista completa
-        if ($request->get('todas', false) === true) {
-            $query = DB::table('notificaciones')
-                ->where('usuario_id', $usuarioId)
-                ->whereNull('deleted_at')
-                ->where('fecha_notificacion', '<=', Carbon::now())
-                ->orderBy('fecha_notificacion', 'desc');
-        }
-        
-        // Limitar para dropdown
-        $limit = $request->get('limit', 10);
-        $notificaciones = $query->limit($limit)->get();
-        
-        // Convertir booleanos
-        $notificaciones->transform(function($notif) {
-            $notif->leida = (bool) $notif->leida;
-            return $notif;
-        });
-        
-        // Contar total no leídas ACTIVAS
-        $totalNoLeidas = DB::table('notificaciones')
-            ->where('usuario_id', $usuarioId)
-            ->whereNull('deleted_at')
-            ->where('fecha_notificacion', '<=', Carbon::now())
-            ->where('leida', false)
-            ->count();
-        
-        return response()->json([
-            'success' => true,
-            'data' => $notificaciones,
-            'meta' => [
-                'total_no_leidas' => $totalNoLeidas
-            ]
-        ]);
-    }
-    
-    /**
-     * Marcar una notificación como leída
-     */
-    public function marcarLeida($id)
-    {
-        $usuarioId = Auth::id();
-        
-        $actualizado = DB::table('notificaciones')
-            ->where('id', $id)
-            ->where('usuario_id', $usuarioId)
-            ->update([
-                'leida' => true,
-                'fecha_leida' => Carbon::now()
-            ]);
-        
-        if ($actualizado) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Notificación marcada como leída',
-                'meta' => [
-                    'total_no_leidas' => DB::table('notificaciones')
-                        ->where('usuario_id', $usuarioId)
-                        ->whereNull('deleted_at')
-                        ->where('fecha_notificacion', '<=', Carbon::now())
-                        ->where('leida', false)
-                        ->count()
-                ]
-            ]);
-        }
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'No se pudo marcar la notificación como leída'
-        ], 400);
-    }
-    
-    /**
-     * Marcar todas las notificaciones como leídas
-     */
-    public function marcarTodasLeidas()
-    {
-        $usuarioId = Auth::id();
-        
-        DB::table('notificaciones')
-            ->where('usuario_id', $usuarioId)
-            ->whereNull('deleted_at')
-            ->where('fecha_notificacion', '<=', Carbon::now())
-            ->where('leida', false)
-            ->update([
-                'leida' => true,
-                'fecha_leida' => Carbon::now()
-            ]);
-        
-        return response()->json([
-            'success' => true,
-            'message' => 'Todas las notificaciones marcadas como leídas'
-        ]);
-    }
-    
-    /**
-     * Eliminar una notificación
-     */
-    public function destroy($id)
-    {
-        $usuarioId = Auth::id();
-        
-        $actualizado = DB::table('notificaciones')
-            ->where('id', $id)
-            ->where('usuario_id', $usuarioId)
-            ->update([
-                'deleted_at' => Carbon::now(),
-                'deleted_by' => $usuarioId
-            ]);
-        
-        if ($actualizado) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Notificación eliminada',
-                'meta' => [
-                    'total_no_leidas' => DB::table('notificaciones')
-                        ->where('usuario_id', $usuarioId)
-                        ->whereNull('deleted_at')
-                        ->where('fecha_notificacion', '<=', Carbon::now())
-                        ->where('leida', false)
-                        ->count()
-                ]
-            ]);
-        }
-        
-        return response()->json([
-            'success' => false,
-            'message' => 'No se pudo eliminar la notificación'
-        ], 400);
-    }
-    
-    /**
-     * Obtener contador de notificaciones no leídas
-     */
-    public function contador()
-    {
-        $usuarioId = Auth::id();
-        
-        $totalNoLeidas = DB::table('notificaciones')
-            ->where('usuario_id', $usuarioId)
-            ->whereNull('deleted_at')
-            ->where('fecha_notificacion', '<=', Carbon::now())
-            ->where('leida', false)
-            ->count();
-        
-        return response()->json([
-            'success' => true,
-            'total_no_leidas' => $totalNoLeidas
-        ]);
-    }
-    
-    /**
-     * Vista de notificaciones programadas
-     */
-
-    public function programadas(Request $request)
+public function programadas(Request $request)
 {
     $usuarioId = Auth::id();
     
-    // Query para notificaciones programadas (futuras)
-    $query = DB::table('notificaciones')
-        ->where('usuario_id', $usuarioId)
-        ->whereNull('deleted_at')
-        ->where('fecha_notificacion', '>', Carbon::now()) // ← FUTURAS
-        ->orderBy('fecha_notificacion', 'asc'); // Ordenar por fecha ascendente
+    // Query base - NOTIFICACIONES FUTURAS (fecha > ahora)
+    $query = $this->baseQuery($usuarioId)
+        ->where('fecha_notificacion', '>', Carbon::now());
     
-    // Aplicar filtros si los hay
+    // Aplicar filtros
     if ($request->filled('tipo')) {
         $query->where('tipo', $request->tipo);
     }
@@ -251,7 +62,6 @@ class NotificacionController extends Controller
         $query->where('prioridad', $request->prioridad);
     }
     
-    // Búsqueda
     if ($request->filled('busqueda')) {
         $busqueda = $request->busqueda;
         $query->where(function($q) use ($busqueda) {
@@ -263,34 +73,62 @@ class NotificacionController extends Controller
     // Paginación
     $programadas = $query->paginate(20);
     
-    // Convertir booleanos
+    // Transformar resultados con información adicional
     $programadas->getCollection()->transform(function($notificacion) {
-        $notificacion->leida = (bool) $notificacion->leida;
-        $notificacion->fecha_programada = Carbon::parse($notificacion->fecha_notificacion);
-        $notificacion->dias_faltantes = Carbon::now()->diffInDays($notificacion->fecha_programada, false);
-        return $notificacion;
+        $notif = $this->transformarNotificacion($notificacion);
+        $notif->fecha_programada = Carbon::parse($notif->fecha_notificacion);
+        $notif->dias_faltantes = Carbon::now()->diffInDays($notif->fecha_programada, false);
+        
+        // Información adicional según el tipo de entidad
+        $notif->lead_nombre = null;
+        $notif->lead_id = null;
+        
+        if ($notif->entidad_tipo === 'comentario') {
+            $comentario = DB::table('comentarios')
+                ->select('comentarios.lead_id', 'leads.nombre_completo')
+                ->join('leads', 'comentarios.lead_id', '=', 'leads.id')
+                ->where('comentarios.id', $notif->entidad_id)
+                ->first();
+            if ($comentario) {
+                $notif->lead_id = $comentario->lead_id;
+                $notif->lead_nombre = $comentario->nombre_completo;
+            }
+        }
+        
+        if ($notif->entidad_tipo === 'lead') {
+            $lead = DB::table('leads')
+                ->select('nombre_completo')
+                ->where('id', $notif->entidad_id)
+                ->first();
+            if ($lead) {
+                $notif->lead_nombre = $lead->nombre_completo;
+                $notif->lead_id = $notif->entidad_id;
+            }
+        }
+        
+        if ($notif->entidad_tipo === 'seguimiento_perdida') {
+            $seguimiento = DB::table('seguimientos_perdida')
+                ->select('seguimientos_perdida.lead_id', 'leads.nombre_completo')
+                ->join('leads', 'seguimientos_perdida.lead_id', '=', 'leads.id')
+                ->where('seguimientos_perdida.id', $notif->entidad_id)
+                ->first();
+            if ($seguimiento) {
+                $notif->lead_id = $seguimiento->lead_id;
+                $notif->lead_nombre = $seguimiento->nombre_completo;
+            }
+        }
+        
+        return $notif;
     });
     
     // Estadísticas
     $estadisticas = [
-        'total' => DB::table('notificaciones')
-            ->where('usuario_id', $usuarioId)
-            ->whereNull('deleted_at')
-            ->where('fecha_notificacion', '>', Carbon::now())
-            ->count(),
-        'hoy' => DB::table('notificaciones')
-            ->where('usuario_id', $usuarioId)
-            ->whereNull('deleted_at')
-            ->whereDate('fecha_notificacion', Carbon::today())
-            ->count(),
-        'semana' => DB::table('notificaciones')
-            ->where('usuario_id', $usuarioId)
-            ->whereNull('deleted_at')
+        'total' => $this->baseQuery($usuarioId)->where('fecha_notificacion', '>', Carbon::now())->count(),
+        'hoy' => $this->baseQuery($usuarioId)->whereDate('fecha_notificacion', Carbon::today())->count(),
+        'semana' => $this->baseQuery($usuarioId)
             ->whereBetween('fecha_notificacion', [Carbon::now(), Carbon::now()->addDays(7)])
             ->count(),
-        'mes' => DB::table('notificaciones')
-            ->where('usuario_id', $usuarioId)
-            ->whereNull('deleted_at')
+        'mes' => $this->baseQuery($usuarioId)
             ->whereBetween('fecha_notificacion', [Carbon::now(), Carbon::now()->addDays(30)])
             ->count(),
     ];
@@ -302,24 +140,280 @@ class NotificacionController extends Controller
         'tipos' => $this->getTiposNotificaciones(),
     ]);
 }
-
-/**
- * Obtener lista de tipos de notificaciones
- */
-private function getTiposNotificaciones()
+    
+    /**
+     * API para dropdown - solo notificaciones NO LEÍDAS
+     */
+public function ajaxIndex(Request $request)
 {
-    return [
-        'lead_sin_contactar' => 'Lead sin contactar',
-        'lead_proximo_contacto' => 'Próximo contacto',
-        'presupuesto_por_vencer' => 'Presupuesto por vencer',
-        'presupuesto_vencido' => 'Presupuesto vencido',
-        'contrato_por_vencer' => 'Contrato por vencer',
-        'recordatorio_seguimiento' => 'Recordatorio seguimiento',
-        'asignacion_lead' => 'Asignación lead',
-        'comentario_recordatorio' => 'Recordatorio comentario',
-    ];
+    $usuarioId = Auth::id();
+    
+    if (!$usuarioId) {
+        return $this->jsonError('No autenticado', 401);
+    }
+    
+    $query = $this->baseQuery($usuarioId)
+        ->where('fecha_notificacion', '<=', Carbon::now());
+    
+    if (!$request->get('todas', false)) {
+        $query->where('leida', false);
+    }
+    
+    $limit = $request->get('limit', 10);
+    $notificaciones = $query->limit($limit)->get()
+        ->map(function($notif) {
+            $notif = $this->transformarNotificacion($notif);
+            
+            // Incluir información del lead
+            $notif->lead_nombre = null;
+            $notif->lead_id = null;
+            
+            if ($notif->entidad_tipo === 'comentario') {
+                $comentario = DB::table('comentarios')
+                    ->select('comentarios.lead_id', 'leads.nombre_completo')
+                    ->join('leads', 'comentarios.lead_id', '=', 'leads.id')
+                    ->where('comentarios.id', $notif->entidad_id)
+                    ->first();
+                if ($comentario) {
+                    $notif->lead_id = $comentario->lead_id;
+                    $notif->lead_nombre = $comentario->nombre_completo;
+                }
+            }
+            
+            if ($notif->entidad_tipo === 'lead') {
+                $lead = DB::table('leads')
+                    ->select('nombre_completo')
+                    ->where('id', $notif->entidad_id)
+                    ->first();
+                if ($lead) {
+                    $notif->lead_nombre = $lead->nombre_completo;
+                    $notif->lead_id = $notif->entidad_id;
+                }
+            }
+            
+            return $notif;
+        });
+    
+    return response()->json([
+        'success' => true,
+        'data' => $notificaciones,
+        'meta' => [
+            'total_no_leidas' => $this->contarNoLeidas($usuarioId)
+        ]
+    ]);
 }
-
-
-
+    
+    /**
+     * Marcar una notificación como leída
+     */
+    public function marcarLeida($id)
+    {
+        return $this->marcarLeidas([$id]);
+    }
+    
+    /**
+     * Marcar múltiples notificaciones como leídas
+     */
+    public function marcarTodasLeidas(Request $request)
+    {
+        $usuarioId = Auth::id();
+        
+        $ids = $request->input('ids', []);
+        
+        if (empty($ids)) {
+            // Marcar todas las no leídas
+            $query = DB::table('notificaciones')
+                ->where('usuario_id', $usuarioId)
+                ->where('leida', false)
+                ->whereNull('deleted_at');
+            
+            $porActualizar = $query->count();
+            
+            $query->update([
+                'leida' => true,
+                'fecha_leida' => now()
+            ]);
+            
+            $mensaje = $porActualizar > 0 
+                ? "{$porActualizar} notificaciones marcadas como leídas"
+                : 'No hay notificaciones por marcar';
+            
+            return $this->jsonSuccess($mensaje, [
+                'actualizadas' => $porActualizar,
+                'total_no_leidas' => 0
+            ]);
+        }
+        
+        return $this->marcarLeidas($ids);
+    }
+    
+    /**
+     * Eliminar una notificación (soft delete)
+     */
+    public function destroy($id)
+    {
+        $usuarioId = Auth::id();
+        
+        $actualizado = DB::table('notificaciones')
+            ->where('id', $id)
+            ->where('usuario_id', $usuarioId)
+            ->update([
+                'deleted_at' => now(),
+                'deleted_by' => $usuarioId
+            ]);
+        
+        if ($actualizado) {
+            return $this->jsonSuccess('Notificación eliminada', [
+                'total_no_leidas' => $this->contarNoLeidas($usuarioId)
+            ]);
+        }
+        
+        return $this->jsonError('No se pudo eliminar la notificación', 400);
+    }
+    
+    /**
+     * Obtener contador de notificaciones no leídas
+     */
+    public function contador()
+    {
+        $usuarioId = Auth::id();
+        
+        $total = $this->contarNoLeidas($usuarioId);
+        
+        $porPrioridad = DB::table('notificaciones')
+            ->where('usuario_id', $usuarioId)
+            ->where('leida', false)
+            ->whereNull('deleted_at')
+            ->where('fecha_notificacion', '<=', now())
+            ->select('prioridad', DB::raw('COUNT(*) as cantidad'))
+            ->groupBy('prioridad')
+            ->get()
+            ->pluck('cantidad', 'prioridad')
+            ->toArray();
+        
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'total' => $total,
+                'por_prioridad' => $porPrioridad
+            ]
+        ]);
+    }
+    
+    // ==================== MÉTODOS PRIVADOS ====================
+    
+    /**
+     * Query base para notificaciones
+     */
+    private function baseQuery($usuarioId)
+    {
+        return DB::table('notificaciones')
+            ->where('usuario_id', $usuarioId)
+            ->whereNull('deleted_at');
+    }
+    
+    /**
+     * Aplicar filtros comunes a la query
+     */
+    private function aplicarFiltros($query, Request $request)
+    {
+        if ($request->filled('leida')) {
+            $query->where('leida', $request->leida === 'true' ? 1 : 0);
+        }
+        
+        if ($request->filled('tipo')) {
+            $query->where('tipo', $request->tipo);
+        }
+        
+        if ($request->filled('prioridad')) {
+            $query->where('prioridad', $request->prioridad);
+        }
+    }
+    
+    /**
+     * Transformar una notificación (convertir booleanos)
+     */
+    private function transformarNotificacion($notificacion)
+    {
+        $notificacion->leida = (bool) $notificacion->leida;
+        return $notificacion;
+    }
+    
+    /**
+     * Contar notificaciones no leídas activas
+     */
+    private function contarNoLeidas($usuarioId)
+    {
+        return DB::table('notificaciones')
+            ->where('usuario_id', $usuarioId)
+            ->where('leida', false)
+            ->whereNull('deleted_at')
+            ->where('fecha_notificacion', '<=', now())
+            ->count();
+    }
+    
+    /**
+     * Marcar múltiples notificaciones como leídas
+     */
+    private function marcarLeidas(array $ids)
+    {
+        $usuarioId = Auth::id();
+        
+        $actualizados = DB::table('notificaciones')
+            ->whereIn('id', $ids)
+            ->where('usuario_id', $usuarioId)
+            ->whereNull('deleted_at')
+            ->update([
+                'leida' => true,
+                'fecha_leida' => now()
+            ]);
+        
+        return $this->jsonSuccess(
+            $actualizados > 0 ? 'Notificaciones marcadas como leídas' : 'No se actualizó ninguna',
+            [
+                'actualizados' => $actualizados,
+                'total_no_leidas' => $this->contarNoLeidas($usuarioId)
+            ]
+        );
+    }
+    
+    /**
+     * Respuesta JSON exitosa
+     */
+    private function jsonSuccess($message, $extra = [])
+    {
+        return response()->json(array_merge([
+            'success' => true,
+            'message' => $message
+        ], $extra));
+    }
+    
+    /**
+     * Respuesta JSON de error
+     */
+    private function jsonError($message, $status = 400)
+    {
+        return response()->json([
+            'success' => false,
+            'error' => $message
+        ], $status);
+    }
+    
+    /**
+     * Obtener lista de tipos de notificaciones
+     */
+    private function getTiposNotificaciones()
+    {
+        return [
+            'lead_sin_contactar' => 'Lead sin contactar',
+            'lead_proximo_contacto' => 'Próximo contacto',
+            'presupuesto_por_vencer' => 'Presupuesto por vencer',
+            'presupuesto_vencido' => 'Presupuesto vencido',
+            'contrato_por_vencer' => 'Contrato por vencer',
+            'recordatorio_seguimiento' => 'Recordatorio seguimiento',
+            'asignacion_lead' => 'Asignación lead',
+            'comentario_recordatorio' => 'Recordatorio comentario',
+            'lead_posible_recontacto' => 'Posible recontacto de lead perdido',
+        ];
+    }
 }

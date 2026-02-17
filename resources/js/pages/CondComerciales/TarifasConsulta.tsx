@@ -1,13 +1,15 @@
 // resources/js/Pages/CondComerciales/TarifasConsulta.tsx
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
+import DownloadModal from '@/components/Modals/DownloadModal';
 import { router } from '@inertiajs/react';
 
 interface ProductoServicio {
     id: number;
+    codigopro: string;
     nombre: string;
     descripcion: string;
-    valor: number;
+    precio: number;
     tipo_id: number;
     compania_id: number;
     es_activo: boolean;
@@ -24,16 +26,28 @@ interface TipoPrdSrv {
     created: string;
 }
 
+interface Permisos {
+    puede_ver_todas: boolean;
+    companias_permitidas: number[];
+    compania_actual?: {
+        id: number;
+        nombre: string;
+        logo?: string;
+    };
+}
+
 interface Props {
     productos_servicios: ProductoServicio[];
     tipos_prd_srv: TipoPrdSrv[];
+    permisos: Permisos;
 }
 
-export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: Props) {
+export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, permisos }: Props) {
     const [productos, setProductos] = useState<ProductoServicio[]>(productos_servicios);
     const [tipos, setTipos] = useState<TipoPrdSrv[]>(tipos_prd_srv);
     const [tiposActivos, setTiposActivos] = useState<TipoPrdSrv[]>([]);
     const [activeTab, setActiveTab] = useState<string>('');
+    const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
     useEffect(() => {
         const tiposActivosFiltrados = tipos.filter(tipo => tipo.es_activo);
@@ -44,8 +58,10 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
         }
     }, [tipos]);
 
-    // Ordenar productos por ID (ascendente)
-    const productosOrdenados = [...productos].sort((a, b) => a.id - b.id);
+    // Ordenar productos por código (ascendente)
+    const productosOrdenados = [...productos].sort((a, b) => 
+        a.codigopro.localeCompare(b.codigopro)
+    );
 
     const productosFiltrados = productosOrdenados.filter(
         producto => producto.es_activo && 
@@ -56,8 +72,29 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
         return new Intl.NumberFormat('es-AR', {
             style: 'currency',
             currency: 'ARS',
-            minimumFractionDigits: 0
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 2
         }).format(amount);
+    };
+
+    // Función para obtener el nombre de la compañía
+    const getCompaniaNombre = (companiaId: number) => {
+        const companias: Record<number, string> = {
+            1: 'LocalSat',
+            2: 'SmartSat',
+            3: '360',
+        };
+        return companias[companiaId] || `Compañía ${companiaId}`;
+    };
+
+    // Función para obtener el color de la compañía
+    const getCompaniaColor = (companiaId: number) => {
+        const colores: Record<number, { primary: string; secondary: string }> = {
+            1: { primary: '#fa6400', secondary: '#3b3b3d' }, // LocalSat
+            2: { primary: '#eb9b11', secondary: '#3b3b3d' }, // SmartSat
+            3: { primary: '#fa6400', secondary: '#3b3b3d' }, // 360
+        };
+        return colores[companiaId] || { primary: '#fa6400', secondary: '#3b3b3d' };
     };
 
     // Función para extraer información de vehículos del nombre del abono
@@ -87,6 +124,7 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
         return nombre.replace(/\s+/g, ' ').trim();
     };
 
+
     const renderServicios = () => {
         return (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -100,55 +138,69 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
                                 {productosFiltrados.length} servicios disponibles
                             </p>
                         </div>
-                        <button className="px-4 py-2 bg-sat text-white text-sm rounded hover:bg-sat-600 transition-colors w-full sm:w-auto">
-                            Descargar Listado
-                        </button>
                     </div>
                 </div>
 
                 {/* Cards de servicios - Responsive */}
                 <div className="p-4 md:p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        {productosFiltrados.map((producto) => (
-                            <div key={producto.id} className="border border-gray-200 rounded-lg p-4 hover:border-sat transition-colors hover:shadow-md">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-gray-900 text-base md:text-lg">
-                                            {producto.nombre}
-                                        </h3>
-                                        <p className="text-xs md:text-sm text-gray-500 mt-1">
-                                            ID: #{producto.id}
-                                        </p>
-                                    </div>
-                                    <span className={`px-2 py-1 rounded text-xs md:text-sm font-medium flex-shrink-0 ml-2 ${
-                                        producto.es_activo 
-                                            ? 'bg-green-100 text-green-800' 
-                                            : 'bg-red-100 text-red-800'
-                                    }`}>
-                                        {producto.es_activo ? 'Activo' : 'Inactivo'}
-                                    </span>
-                                </div>
-                                
-                                {producto.descripcion && (
-                                    <div className="mb-3">
-                                        <p className="text-sm text-gray-600 line-clamp-2 md:line-clamp-3">
-                                            {producto.descripcion}
-                                        </p>
-                                    </div>
-                                )}
-                                
-                                <div className="pt-3 border-t border-gray-100">
-                                    <div className="flex justify-between items-center">
-                                        <div className="text-sm md:text-base font-medium text-gray-700">
-                                            Valor:
+                        {productosFiltrados.map((producto) => {
+                            const colorCompania = getCompaniaColor(producto.compania_id);
+                            const nombreCompania = getCompaniaNombre(producto.compania_id);
+                            
+                            return (
+                                <div key={producto.id} className="border border-gray-200 rounded-lg p-4 hover:border-sat transition-colors hover:shadow-md">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-semibold text-gray-900 text-base md:text-lg">
+                                                {producto.nombre}
+                                            </h3>
+                                            <p className="text-xs md:text-sm text-gray-500 mt-1">
+                                                Código: {producto.codigopro}
+                                            </p>
+                                            {/* Badge de compañía */}
+                                            <div className="mt-2">
+                                                <span 
+                                                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                                                    style={{ 
+                                                        backgroundColor: colorCompania.primary + '20', // 20% opacity
+                                                        color: colorCompania.primary 
+                                                    }}
+                                                >
+                                                    {nombreCompania}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="font-bold text-local text-lg md:text-xl">
-                                            {formatCurrency(producto.valor)}
+                                        <span className={`px-2 py-1 rounded text-xs md:text-sm font-medium flex-shrink-0 ml-2 ${
+                                            producto.es_activo 
+                                                ? 'bg-green-100 text-green-800' 
+                                                : 'bg-red-100 text-red-800'
+                                        }`}>
+                                            {producto.es_activo ? 'Activo' : 'Inactivo'}
+                                        </span>
+                                    </div>
+                                    
+                                    {producto.descripcion && (
+                                        <div className="mb-3">
+                                            <p className="text-sm text-gray-600 line-clamp-2 md:line-clamp-3">
+                                                {producto.descripcion}
+                                            </p>
+                                        </div>
+                                    )}
+                                    
+                                    <div className="pt-3 border-t border-gray-100">
+                                        <div className="flex justify-between items-center">
+                                            <div className="text-sm md:text-base font-medium text-gray-700">
+                                                Valor:
+                                            </div>
+                                            <div className="font-bold text-local text-lg md:text-xl">
+                                                {formatCurrency(producto.precio)}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </div>
@@ -168,9 +220,6 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
                                 {productosFiltrados.length} planes de abono disponibles
                             </p>
                         </div>
-                        <button className="px-4 py-2 bg-sat text-white text-sm rounded hover:bg-sat-600 transition-colors w-full sm:w-auto">
-                            Descargar Listado
-                        </button>
                     </div>
                 </div>
 
@@ -180,6 +229,8 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
                         {productosFiltrados.map((abono) => {
                             const vehiculosInfo = getVehiculosInfo(abono.nombre);
                             const nombreLimpio = getNombreLimpio(abono.nombre);
+                            const colorCompania = getCompaniaColor(abono.compania_id);
+                            const nombreCompania = getCompaniaNombre(abono.compania_id);
                             
                             // Determinar color basado en el tipo
                             const getColorClase = () => {
@@ -231,7 +282,19 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
                                                 </p>
                                             </div>
                                             <span className="px-2 py-1 bg-white text-gray-700 text-xs rounded-full font-bold border border-gray-300 flex-shrink-0">
-                                                #{abono.id}
+                                                {abono.codigopro}
+                                            </span>
+                                        </div>
+                                        {/* Badge de compañía en header */}
+                                        <div className="mt-2">
+                                            <span 
+                                                className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                                                style={{ 
+                                                    backgroundColor: colorCompania.primary + '20',
+                                                    color: colorCompania.primary 
+                                                }}
+                                            >
+                                                {nombreCompania}
                                             </span>
                                         </div>
                                     </div>
@@ -241,7 +304,7 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
                                         {/* Precio destacado */}
                                         <div className="text-center mb-4">
                                             <div className="text-2xl md:text-3xl font-bold text-local mb-1">
-                                                {formatCurrency(abono.valor)}
+                                                {formatCurrency(abono.precio)}
                                             </div>
                                             <div className="text-sm text-gray-600">
                                                 por mes
@@ -254,7 +317,7 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
                                             <div className="text-center bg-gray-50 rounded p-2 md:p-3">
                                                 <div className="text-xs md:text-sm text-gray-600 mb-1">Vehículos</div>
                                                 <div className="font-bold text-gray-900 text-base md:text-lg">
-                                                    {vehiculosInfo === 'Personalizado' ? 'Pers.' : vehiculosInfo}
+                                                    {vehiculosInfo === 'Personalizado' ? '1' : vehiculosInfo}
                                                 </div>
                                             </div>
                                             
@@ -319,55 +382,69 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
                                 {productosFiltrados.length} productos disponibles
                             </p>
                         </div>
-                        <button className="px-4 py-2 bg-sat text-white text-sm rounded hover:bg-sat-600 transition-colors w-full sm:w-auto">
-                            Descargar Listado
-                        </button>
                     </div>
                 </div>
 
                 {/* Cards genéricas */}
                 <div className="p-4 md:p-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        {productosFiltrados.map((producto) => (
-                            <div key={producto.id} className="border border-gray-200 rounded-lg p-4 hover:border-sat transition-colors hover:shadow-md">
-                                <div className="flex justify-between items-start mb-3">
-                                    <div className="flex-1 min-w-0">
-                                        <h3 className="font-semibold text-gray-900 text-base md:text-lg">
-                                            {producto.nombre}
-                                        </h3>
-                                        <p className="text-xs md:text-sm text-gray-500 mt-1">
-                                            ID: #{producto.id}
-                                        </p>
-                                    </div>
-                                    <span className={`px-2 py-1 rounded text-xs md:text-sm font-medium flex-shrink-0 ml-2 ${
-                                        producto.es_activo 
-                                            ? 'bg-green-100 text-green-800' 
-                                            : 'bg-red-100 text-red-800'
-                                    }`}>
-                                        {producto.es_activo ? 'Activo' : 'Inactivo'}
-                                    </span>
-                                </div>
-                                
-                                {producto.descripcion && (
-                                    <div className="mb-3">
-                                        <p className="text-sm text-gray-600 line-clamp-2 md:line-clamp-3">
-                                            {producto.descripcion}
-                                        </p>
-                                    </div>
-                                )}
-                                
-                                <div className="pt-3 border-t border-gray-100">
-                                    <div className="flex justify-between items-center">
-                                        <div className="text-sm md:text-base font-medium text-gray-700">
-                                            Valor:
+                        {productosFiltrados.map((producto) => {
+                            const colorCompania = getCompaniaColor(producto.compania_id);
+                            const nombreCompania = getCompaniaNombre(producto.compania_id);
+                            
+                            return (
+                                <div key={producto.id} className="border border-gray-200 rounded-lg p-4 hover:border-sat transition-colors hover:shadow-md">
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div className="flex-1 min-w-0">
+                                            <h3 className="font-semibold text-gray-900 text-base md:text-lg">
+                                                {producto.nombre}
+                                            </h3>
+                                            <p className="text-xs md:text-sm text-gray-500 mt-1">
+                                                Código: {producto.codigopro}
+                                            </p>
+                                            {/* Badge de compañía */}
+                                            <div className="mt-2">
+                                                <span 
+                                                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+                                                    style={{ 
+                                                        backgroundColor: colorCompania.primary + '20',
+                                                        color: colorCompania.primary 
+                                                    }}
+                                                >
+                                                    {nombreCompania}
+                                                </span>
+                                            </div>
                                         </div>
-                                        <div className="font-bold text-local text-lg md:text-xl">
-                                            {formatCurrency(producto.valor)}
+                                        <span className={`px-2 py-1 rounded text-xs md:text-sm font-medium flex-shrink-0 ml-2 ${
+                                            producto.es_activo 
+                                                ? 'bg-green-100 text-green-800' 
+                                                : 'bg-red-100 text-red-800'
+                                        }`}>
+                                            {producto.es_activo ? 'Activo' : 'Inactivo'}
+                                        </span>
+                                    </div>
+                                    
+                                    {producto.descripcion && (
+                                        <div className="mb-3">
+                                            <p className="text-sm text-gray-600 line-clamp-2 md:line-clamp-3">
+                                                {producto.descripcion}
+                                            </p>
+                                        </div>
+                                    )}
+                                    
+                                    <div className="pt-3 border-t border-gray-100">
+                                        <div className="flex justify-between items-center">
+                                            <div className="text-sm md:text-base font-medium text-gray-700">
+                                                Valor:
+                                            </div>
+                                            <div className="font-bold text-local text-lg md:text-xl">
+                                                {formatCurrency(producto.precio)}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             </div>
@@ -393,15 +470,45 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
 
     return (
         <AppLayout title="Catálogo de Productos y Servicios">
+            {/* Header con información de compañía y botón de descarga */}
             <div className="mb-6">
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
-                    Catálogo de Productos y Servicios
-                </h1>
-                <p className="mt-1 md:mt-2 text-gray-600 text-sm md:text-base">
-                    Consulta todos los productos y servicios disponibles por categoría
-                </p>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">
+                            Catálogo de Productos y Servicios
+                        </h1>
+                        <p className="mt-1 md:mt-2 text-gray-600 text-sm md:text-base">
+                            Consulta todos los productos y servicios disponibles por categoría
+                        </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                        {/* Botón de descarga - NUEVO */}
+                        <button
+                            onClick={() => setIsDownloadModalOpen(true)}
+                            className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
+                        >
+                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Descargar Listado
+                        </button>
+                        
+                        {/* Badge para usuarios con acceso total */}
+                        {permisos.puede_ver_todas && (
+                            <div className="flex items-center gap-2 bg-purple-100 rounded-lg px-4 py-2">
+                                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <span className="text-sm font-medium text-purple-900">
+                                    Acceso total - Todo el catalogo
+                                </span>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </div>
-
             {/* Tabs - SOLO 2 FILAS EN MÓVIL, 1 FILA EN WEB */}
             <div className="mb-6">
                 <div className="border-b border-gray-200">
@@ -435,14 +542,14 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
                                             activeTab === tipo.nombre_tipo_abono
                                                 ? 'border-sat text-sat'
                                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                        }`}
-                                    >
-                                        {tipo.nombre_tipo_abono} ({productos.filter(p => p.es_activo && p.tipo_id === tipo.id).length})
-                                    </button>
-                                ))}
-                            </nav>
-                        )}
-                    </div>
+                                    }`}
+                                >
+                                    {tipo.nombre_tipo_abono} ({productos.filter(p => p.es_activo && p.tipo_id === tipo.id).length})
+                                </button>
+                            ))}
+                        </nav>
+                    )}
+                </div>
                     
                     {/* Versión web: 1 sola fila */}
                     <div className="hidden md:block">
@@ -467,8 +574,17 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
 
             {/* Contenido dinámico */}
             {activeTab && renderContenidoPorTipo()}
+            
+            <DownloadModal
+                isOpen={isDownloadModalOpen}
+                onClose={() => setIsDownloadModalOpen(false)}
+                tipos={tiposActivos}
+                productos={productos}
+                companiaInfo={permisos.compania_actual}
+                puedeVerTodas={permisos.puede_ver_todas}
+            />
 
-            {/* Sección de información - Mejorada */}
+            {/* Sección de información - CORREGIDO: verificamos que compania_actual exista */}
             <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-4 md:p-6 border-b border-gray-200">
                     <h3 className="text-base md:text-lg font-semibold text-gray-900">
@@ -476,7 +592,7 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
                     </h3>
                 </div>
                 <div className="p-4 md:p-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-6">
                         <div className="bg-blue-50 rounded-lg p-4 md:p-5 border border-blue-100">
                             <div className="font-medium text-blue-800 text-sm md:text-base mb-1 md:mb-2">
                                 Precios sin IVA
@@ -498,7 +614,19 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv }: 
                                 Actualización
                             </div>
                             <div className="text-sm text-purple-700">
-                                Los productos se actualizan periódicamente
+                                Los productos se encuentran actualizados
+                            </div>
+                        </div>
+                        <div className="bg-amber-50 rounded-lg p-4 md:p-5 border border-amber-100">
+                            <div className="font-medium text-amber-800 text-sm md:text-base mb-1 md:mb-2">
+                                Compañía
+                            </div>
+                            <div className="text-sm text-amber-700">
+                                {permisos.puede_ver_todas 
+                                    ? 'Acceso a todo el catalogo' 
+                                    : permisos.compania_actual 
+                                        ? `Viendo: ${permisos.compania_actual.nombre}`
+                                        : 'Compañía asignada'}
                             </div>
                         </div>
                     </div>

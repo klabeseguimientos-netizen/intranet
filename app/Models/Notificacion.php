@@ -11,6 +11,8 @@ class Notificacion extends Model
     
     protected $table = 'notificaciones';
     
+    public $timestamps = false;
+    
     protected $fillable = [
         'usuario_id',
         'titulo',
@@ -28,10 +30,26 @@ class Notificacion extends Model
         'leida' => 'boolean',
         'fecha_notificacion' => 'datetime',
         'fecha_leida' => 'datetime',
+        'prioridad' => 'integer',
     ];
     
     public function usuario()
     {
-        return $this->belongsTo(User::class, 'usuario_id');
+        return $this->belongsTo(Usuario::class);
+    }
+    
+    public function scopeNoLeidas($query)
+    {
+        return $query->where('leida', false);
+    }
+    
+    public function scopeLeidas($query)
+    {
+        return $query->where('leida', true);
+    }
+    
+    public function scopePorUsuario($query, $usuarioId)
+    {
+        return $query->where('usuario_id', $usuarioId);
     }
 }

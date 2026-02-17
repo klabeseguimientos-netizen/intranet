@@ -1,5 +1,4 @@
 <?php
-// app/Models/AbonoVehiculo.php
 
 namespace App\Models;
 

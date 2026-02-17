@@ -1,0 +1,249 @@
+<?php
+
+namespace App\Services\Lead;
+
+use App\Models\Lead;
+use App\Models\EstadoLead;
+use App\Models\Prefijo;
+use App\Helpers\PermissionHelper;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Collection;
+
+class LeadFilterService
+{
+    private array $estadosExcluirIds;
+    
+    public function __construct()
+    {
+        $this->estadosExcluirIds = $this->getEstadosExcluirIds();
+    }
+    
+    private function getEstadosExcluirIds(): array
+    {
+        return EstadoLead::whereIn('tipo', ['recontacto', 'final_negativo'])
+            ->where('activo', 1)
+            ->pluck('id')
+            ->toArray();
+    }
+    
+    public function getQueryBase(): \Illuminate\Database\Eloquent\Builder
+    {
+        return Lead::query()
+            ->with(['origen', 'estadoLead', 'localidad.provincia', 'rubro', 'comercial.personal', 'notas.usuario.personal'])
+            ->where('es_cliente', 0)
+            ->whereNotIn('estado_lead_id', $this->estadosExcluirIds);
+    }
+
+    public function aplicarFiltros(\Illuminate\Database\Eloquent\Builder $query, array $filters): void
+    {
+        // Filtro de búsqueda
+        if (!empty($filters['search'])) {
+            $search = $filters['search'];
+            $query->where(function ($q) use ($search) {
+                $q->where('nombre_completo', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('telefono', 'like', "%{$search}%");
+            });
+        }
+        
+        // Filtro por estado
+        if (!empty($filters['estado_id'])) {
+            $query->where('estado_lead_id', $filters['estado_id']);
+        }
+        
+        // Filtro por origen
+        if (!empty($filters['origen_id'])) {
+            $query->where('origen_id', $filters['origen_id']);
+        }
+
+        if (!empty($filters['prefijo_id'])) {
+            $this->aplicarFiltroPrefijo($query, $filters['prefijo_id']);
+        }
+        
+        // Filtro por fecha
+        if (!empty($filters['fecha_inicio'])) {
+            $query->whereDate('created', '>=', $filters['fecha_inicio']);
+        }
+        
+        if (!empty($filters['fecha_fin'])) {
+            $query->whereDate('created', '<=', $filters['fecha_fin']);
+        }
+    }
+    
+    public function aplicarPermisos(\Illuminate\Database\Eloquent\Builder $query, $usuario): void
+    {
+        PermissionHelper::aplicarFiltroPrefijos($query, $usuario);
+    }
+    
+    public function getComercialesActivos($usuario): Collection
+    {
+        $query = DB::table('comercial as c')
+            ->join('personal as p', 'c.personal_id', '=', 'p.id')
+            ->join('usuarios as u', 'p.id', '=', 'u.personal_id')
+            ->where('c.activo', 1)
+            ->where('u.activo', 1);
+        
+        // Aplicar filtro de permisos
+        if (!$usuario->ve_todas_cuentas) {
+            $prefijosPermitidos = PermissionHelper::getPrefijosPermitidos($usuario->id);
+            if (!empty($prefijosPermitidos)) {
+                $query->whereIn('c.prefijo_id', $prefijosPermitidos);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+        
+        return $query->select(
+                'c.id',
+                'c.prefijo_id',
+                DB::raw("CONCAT(p.nombre, ' ', p.apellido) as nombre"),
+                'p.email'
+            )
+            ->get()
+            ->map(function ($comercial) {
+                return [
+                    'id' => $comercial->id,
+                    'prefijo_id' => $comercial->prefijo_id,
+                    'nombre' => $comercial->nombre,
+                    'email' => $comercial->email,
+                ];
+            });
+    }
+    
+    public function getConteoComentarios(array $leadIds): array
+    {
+        // Comentarios actuales
+        $comentariosPorLead = DB::table('comentarios')
+            ->select('lead_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('lead_id', $leadIds)
+            ->whereNull('deleted_at')
+            ->groupBy('lead_id')
+            ->pluck('total', 'lead_id')
+            ->toArray();
+
+        // Comentarios legacy
+        $comentariosLegacyPorLead = DB::table('comentarios_legacy')
+            ->select('lead_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('lead_id', $leadIds)
+            ->groupBy('lead_id')
+            ->pluck('total', 'lead_id')
+            ->toArray();
+
+        // Combinar
+        $totalComentariosPorLead = [];
+        foreach ($leadIds as $leadId) {
+            $total = ($comentariosPorLead[$leadId] ?? 0) + ($comentariosLegacyPorLead[$leadId] ?? 0);
+            $totalComentariosPorLead[$leadId] = $total;
+        }
+
+        return $totalComentariosPorLead;
+    }
+    
+public function getDatosFiltros($usuario = null): array
+{
+    $data = [
+        'origenes' => DB::table('origenes_contacto')->where('activo', 1)->get(),
+        'estadosLead' => EstadoLead::where('activo', 1)
+            ->whereNotIn('tipo', ['recontacto', 'final_negativo'])
+            ->get(),
+        'tiposComentario' => DB::table('tipo_comentario')
+            ->where('es_activo', 1)
+            ->where(function($query) {
+                $query->where('aplica_a', 'lead')
+                      ->orWhere('aplica_a', 'ambos');
+            })
+            ->get(),
+        'rubros' => DB::table('rubros')->where('activo', 1)->get(),
+        'provincias' => DB::table('provincias')
+            ->where('activo', 1)
+            ->orderBy('provincia')
+            ->get(['id', 'provincia as nombre']),
+    ];
+    
+    // Si se pasa el usuario, incluir comerciales
+    if ($usuario) {
+        $data['comerciales'] = $this->getComercialesActivos($usuario);
+    }
+    
+    return $data;
+}
+
+    public function getPrefijosFiltro($usuario): Collection
+    {
+        $query = Prefijo::query()
+            ->select([
+                'prefijos.id',
+                'prefijos.codigo',
+                'prefijos.descripcion',
+                'comercial.personal_id',
+                DB::raw("CONCAT(personal.nombre, ' ', personal.apellido) as comercial_nombre")
+            ])
+            ->leftJoin('comercial', 'prefijos.id', '=', 'comercial.prefijo_id')
+            ->leftJoin('personal', 'comercial.personal_id', '=', 'personal.id')
+            ->where('prefijos.activo', 1)
+            ->orderBy('prefijos.codigo');
+        
+        // Si el usuario NO ve todas las cuentas, filtrar por sus prefijos asignados
+        if (!$usuario->ve_todas_cuentas) {
+            $prefijosPermitidos = PermissionHelper::getPrefijosPermitidos($usuario->id);
+            if (!empty($prefijosPermitidos)) {
+                $query->whereIn('prefijos.id', $prefijosPermitidos);
+            } else {
+                $query->whereRaw('1 = 0'); // No mostrar nada
+            }
+        }
+        
+        return $query->get()->map(function ($prefijo) {
+            return [
+                'id' => $prefijo->id,
+                'codigo' => $prefijo->codigo,
+                'descripcion' => $prefijo->descripcion,
+                'comercial_nombre' => $prefijo->comercial_nombre,
+                'display_text' => $prefijo->comercial_nombre 
+                    ? "{$prefijo->comercial_nombre} - {$prefijo->codigo}"
+                    : "{$prefijo->codigo} - {$prefijo->descripcion}",
+            ];
+        });
+    }
+    
+    public function aplicarFiltroPrefijo($query, ?string $prefijoId): void
+    {
+        if ($prefijoId && $prefijoId !== '') {
+            $query->where('prefijo_id', $prefijoId);
+        }
+    }
+    
+    public function getPrefijoUsuarioComercial($usuario): ?array
+    {
+        if ($usuario->rol_id == 5) { // rol_id 5 = comercial
+            $prefijo = Prefijo::select([
+                    'prefijos.id',
+                    'prefijos.codigo',
+                    'prefijos.descripcion',
+                    'comercial.personal_id',
+                    DB::raw("CONCAT(personal.nombre, ' ', personal.apellido) as comercial_nombre")
+                ])
+                ->leftJoin('comercial', 'prefijos.id', '=', 'comercial.prefijo_id')
+                ->leftJoin('personal', 'comercial.personal_id', '=', 'personal.id')
+                ->where('comercial.personal_id', $usuario->personal_id)
+                ->where('comercial.activo', 1)
+                ->where('prefijos.activo', 1)
+                ->first();
+            
+            if ($prefijo) {
+                return [
+                    'id' => $prefijo->id,
+                    'codigo' => $prefijo->codigo,
+                    'descripcion' => $prefijo->descripcion,
+                    'comercial_nombre' => $prefijo->comercial_nombre,
+                    'display_text' => $prefijo->comercial_nombre 
+                        ? "{$prefijo->comercial_nombre} - {$prefijo->codigo}"
+                        : "{$prefijo->codigo} - {$prefijo->descripcion}",
+                ];
+            }
+        }
+        
+        return null;
+    }
+
+}
