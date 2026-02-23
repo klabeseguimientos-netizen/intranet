@@ -61,7 +61,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 Route::middleware(['auth', 'usuario.activo'])->group(function () {
     // ==================== RUTAS PRINCIPALES ====================
     Route::get('/welcome', [LoginController::class, 'welcome'])->name('welcome');
-    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/', [DashboardController::class, 'index'])->name('home');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     
     // ==================== GESTIÓN COMERCIAL ====================
