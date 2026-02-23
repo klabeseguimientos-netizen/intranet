@@ -81,6 +81,12 @@ export default function SidebarNav({ className = '', auth }: SidebarNavProps) {
                     href: '/config/tarifas',
                 },
                 {
+                    id: 'gestion-promociones',
+                    name: 'Gestión de Promociones',
+                    icon: <Tag size={14} />,
+                    href: '/config/promociones',
+                },
+                {
                     id: 'gestion-usuarios',
                     name: 'Gestión de Usuarios',
                     icon: <UserCog size={14} />,
@@ -132,6 +138,7 @@ export default function SidebarNav({ className = '', auth }: SidebarNavProps) {
                         { id: 'cambio-razon-social', name: 'Cambio Razón Social', href: '/comercial/cuentas/cambio-razon-social', icon: <Building size={12} /> },
                     ]
                 },
+                { id: 'contratos', name: 'Contratos', href: '/comercial/contratos', icon: <FileText size={14} /> },
                 { id: 'presupuestos', name: 'Presupuestos', href: '/comercial/presupuestos', icon: <FileText size={14} /> },
                 { id: 'recordatorios', name: 'Recordatorios', href: '/notificaciones/programadas', icon: <Calendar size={14} /> },
                 { id: 'prospectos', name: 'Prospectos & Leads', href: '/comercial/prospectos', icon: <Target size={14} /> },

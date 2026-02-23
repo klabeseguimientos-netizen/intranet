@@ -12,7 +12,7 @@ class NotaLead extends Model
     protected $table = 'notas_lead';
     
     const CREATED_AT = 'created';
-    const UPDATED_AT = 'modified';
+    const UPDATED_AT = null;
     const DELETED_AT = 'deleted_at';
     
     protected $fillable = [

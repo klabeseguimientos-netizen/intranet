@@ -22,6 +22,11 @@ class Kernel extends ConsoleKernel
         // Limpiar notificaciones antiguas (más de 30 días) cada domingo a las 3 AM
         $schedule->command('notificaciones:limpiar')
             ->weeklyOn(0, '03:00');
+
+        $schedule->command('presupuestos:verificar-vencidos')
+             ->daily();
+
+        $schedule->command('contratos:verificar-pendientes')->daily();     
             
         // Backups de la base de datos (ajusta según tu configuración)
         // $schedule->command('db:backup')->dailyAt('02:00');

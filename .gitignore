@@ -1,28 +1,60 @@
-/.phpunit.cache
-/bootstrap/ssr
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/resources/js/actions
-/resources/js/routes
-/resources/js/wayfinder
-/storage/*.key
-/storage/pail
-/vendor
-.DS_Store
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
+# Dependencias de Node
+node_modules/
 npm-debug.log
 yarn-error.log
-/auth.json
-/.fleet
-/.idea
-/.nova
-/.vscode
-/.zed
+
+# Dependencias de PHP (Composer)
+/vendor/
+
+# Archivos de entorno
+.env
+.env.local
+.env.production
+.env.development
+
+# Cache y logs de Laravel
+/storage/
+/storage/*.key
+/storage/framework/cache/
+/storage/framework/sessions/
+/storage/framework/views/
+/storage/logs/
+/logs/
+
+# Archivos de IDE
+.idea/
+.vscode/
+*.sublime-*
+*.swp
+*.swo
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build assets (¡importante!)
+/public/build/
+/public/hot
+
+# Tests
+.phpunit.result.cache
+.phpunit.cache
+
+# Laravel específico
+Homestead.json
+Homestead.yaml
+.env.backup
+.php_cs.cache
+
+# Vite
+*.local
+
+# Base de datos local (si tienes copias)
+*.sql
+*.sqlite
+*.db
+
+# Archivos de compilación temporal
+/tmp
+/storage/tmp

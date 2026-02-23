@@ -34,9 +34,14 @@ class Prefijo extends Model
         return $this->hasMany(Lead::class, 'prefijo_id');
     }
     
-    public function comercial(): HasMany
+    public function comercial()
     {
-        return $this->hasMany(Comercial::class, 'prefijo_id');
+        return $this->hasMany(Comercial::class, 'prefijo_id', 'id');
+    }
+    
+    public function getComercialActivoAttribute()
+    {
+        return $this->comercial()->where('activo', 1)->first();
     }
     
     // Scopes

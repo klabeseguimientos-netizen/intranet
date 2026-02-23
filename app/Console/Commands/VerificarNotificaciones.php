@@ -3,8 +3,11 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Lead\Notifications\LeadCommentNotificationService;
+use App\Services\Lead\Notifications\LeadAssignmentNotificationService;
+use App\Services\Presupuesto\PresupuestoNotificationService;
+use App\Services\Contrato\ContratoNotificationService; // Nuevo
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class VerificarNotificaciones extends Command
@@ -12,43 +15,51 @@ class VerificarNotificaciones extends Command
     protected $signature = 'notificaciones:verificar';
     protected $description = 'Verifica y genera notificaciones automáticas';
     
+    protected $commentNotificationService;
+    protected $assignmentNotificationService;
+    protected $presupuestoNotificationService;
+    protected $contratoNotificationService; // Nuevo
+
+    public function __construct(
+        LeadCommentNotificationService $commentNotificationService,
+        LeadAssignmentNotificationService $assignmentNotificationService,
+        PresupuestoNotificationService $presupuestoNotificationService,
+        ContratoNotificationService $contratoNotificationService // Nuevo
+    ) {
+        parent::__construct();
+        $this->commentNotificationService = $commentNotificationService;
+        $this->assignmentNotificationService = $assignmentNotificationService;
+        $this->presupuestoNotificationService = $presupuestoNotificationService;
+        $this->contratoNotificationService = $contratoNotificationService;
+    }
+    
     public function handle()
     {
         $this->info('[' . now()->format('Y-m-d H:i:s') . '] Iniciando verificación de notificaciones...');
         
         try {
-            // Verificar leads sin contactar (solo leads creados después del sistema nuevo)
-            $leadsVerificados = DB::select('
-                SELECT COUNT(*) as total FROM leads 
-                WHERE created >= CURDATE() - INTERVAL 7 DAY 
-                AND es_cliente = 0 
-                AND deleted_at IS NULL
-            ')[0]->total;
+            // ===== LEADS =====
+            $this->info('✓ Notificaciones de leads: se manejan al asignar');
             
-            $this->info("Verificando {$leadsVerificados} leads recientes...");
+            // ===== PRESUPUESTOS =====
+            $this->info('Verificando presupuestos...');
+            $resultadoPresupuestos = $this->presupuestoNotificationService->verificarPresupuestos();
+            $this->info("✓ Presupuestos procesados: {$resultadoPresupuestos['procesados']}");
+            $this->info("✓ Notificaciones de presupuestos: {$resultadoPresupuestos['notificaciones']}");
             
-            DB::statement('CALL sp_verificar_leads_sin_contactar()');
-            $this->info('✓ Leads sin contactar verificados');
-            
-            // Verificar presupuestos por vencer (solo los nuevos)
-            $presupuestosVerificados = DB::select('
-                SELECT COUNT(*) as total FROM presupuestos 
-                WHERE created >= CURDATE() - INTERVAL 30 DAY 
-                AND activo = 1 
-                AND deleted_at IS NULL
-            ')[0]->total;
-            
-            $this->info("Verificando {$presupuestosVerificados} presupuestos recientes...");
-            
-            DB::statement('CALL sp_verificar_presupuestos_vencimiento()');
-            $this->info('✓ Presupuestos verificados');
+            // ===== CONTRATOS ===== (nuevo)
+            $this->info('Verificando contratos...');
+            $resultadoContratos = $this->contratoNotificationService->verificarContratos();
+            $this->info("✓ Contratos procesados: {$resultadoContratos['procesados']}");
+            $this->info("✓ Notificaciones de contratos: {$resultadoContratos['notificaciones']}");
             
             $this->info('[' . now()->format('Y-m-d H:i:s') . '] Verificación completada exitosamente.');
             
         } catch (\Exception $e) {
             $this->error('Error en la verificación: ' . $e->getMessage());
             Log::error('Error en verificación de notificaciones: ' . $e->getMessage(), [
-                'exception' => $e
+                'exception' => $e,
+                'trace' => $e->getTraceAsString()
             ]);
             return 1;
         }

@@ -57,7 +57,6 @@ export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         // Implementar lógica de búsqueda aquí
-        console.log('Buscando:', searchQuery);
     };
 
     return (

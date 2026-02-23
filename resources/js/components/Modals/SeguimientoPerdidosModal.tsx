@@ -80,7 +80,6 @@ export default function SeguimientoPerdidosModal({
 
     // Función para mostrar toast
     const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-        console.log('Mostrando toast:', { message, type });
         setToast({ 
             show: true, 
             message, 
@@ -101,7 +100,6 @@ export default function SeguimientoPerdidosModal({
 
     // Función para cerrar el toast
     const closeToast = () => {
-        console.log('Cerrando toast');
         setToast(null);
     };
 
@@ -234,7 +232,6 @@ export default function SeguimientoPerdidosModal({
             cambiar_estado_lead: data.cambiar_estado_lead,
         };
         
-        console.log('Enviando formulario:', formData);
         
         // Cerrar el modal primero para que se vea el toast
         reset();
@@ -244,7 +241,6 @@ export default function SeguimientoPerdidosModal({
         router.post(`/comercial/leads-perdidos/${lead.id}/seguimiento`, formData, {
             preserveScroll: true,
             onSuccess: () => {
-                console.log('Seguimiento guardado exitosamente');
                 // Mostrar toast de éxito DESPUÉS de cerrar el modal
                 setTimeout(() => {
                     const mensajeExito = esRechazoDefinitivo 

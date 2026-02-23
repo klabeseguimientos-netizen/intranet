@@ -67,7 +67,7 @@ class LeadController extends Controller
                 : 'Lead creado exitosamente';
 
             return redirect()
-                ->route('comercial.prospectos.index')
+                ->back()
                 ->with('success', $mensaje)
                 ->with('lead_id', $leadId)
                 ->with('nota_agregada', $leadData->shouldCreateNote());

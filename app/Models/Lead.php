@@ -162,4 +162,11 @@ class Lead extends Model
     {
     return $this->hasMany(PresupuestoLegacy::class, 'lead_id');
     }
+
+    public function empresaContacto(): HasOne
+{
+    return $this->hasOne(EmpresaContacto::class, 'lead_id')
+                ->where('es_activo', true);
+}
+
 }

@@ -22,7 +22,6 @@ interface Props {
 }
 
 export default function EstadosLead({ estados = [] }: Props) {
-    console.log('DEBUG: Estados recibidos en componente:', estados); // Debug
     
     const [showModal, setShowModal] = useState(false);
     const [editingEstado, setEditingEstado] = useState<EstadoLead | null>(null);

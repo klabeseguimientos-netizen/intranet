@@ -1,4 +1,5 @@
 <?php
+// app/Services/Lead/LeadDetailsService.php
 
 namespace App\Services\Lead;
 
@@ -15,7 +16,7 @@ use App\Models\Comentario;
 use App\Models\ComentarioLegacy;
 use App\Models\Notificacion;
 use App\Models\AuditoriaLog;
-use App\Models\TipoComentario; // Asegúrate de importar esto
+use App\Models\TipoComentario;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Collection;
 use Carbon\Carbon;
@@ -23,14 +24,14 @@ use Carbon\Carbon;
 class LeadDetailsService
 {
     private LeadStateTransitionService $stateTransitionService;
-    private LeadPresupuestoLegacyService $presupuestoLegacyService;
+    private LeadPresupuestoService $presupuestoService;
 
     public function __construct(
         LeadStateTransitionService $stateTransitionService,
-        LeadPresupuestoLegacyService $presupuestoLegacyService
+        LeadPresupuestoService $presupuestoService
     ) {
         $this->stateTransitionService = $stateTransitionService;
-        $this->presupuestoLegacyService = $presupuestoLegacyService;
+        $this->presupuestoService = $presupuestoService;
     }
 
     public function getLeadWithDetails(int $id): ?Lead
@@ -88,40 +89,43 @@ class LeadDetailsService
             return [];
         }
 
-    $comercialAsignado = $this->getAssignedComercial($lead->prefijo_id);
-    $lead->asignado_nombre = $comercialAsignado ? $comercialAsignado->personal->nombre_completo : 'Sin asignar';
-    $lead->prefijo_codigo = $lead->prefijo?->codigo;
-    
-    $notas = $this->getLeadNotes($leadId);
-    $comentarios = $this->getLeadComments($leadId);
-    $notificaciones = $this->getLeadNotifications($leadId, $usuarioId);
-    $tiemposEstados = $this->getStateTransitionTimes($leadId);
-    
-    // Obtener presupuestos legacy
-    $presupuestosLegacy = $this->presupuestoLegacyService->getPresupuestosLegacy($lead);
-    $estadisticasLegacy = $this->presupuestoLegacyService->getEstadisticas($lead);
+        $comercialAsignado = $this->getAssignedComercial($lead->prefijo_id);
+        $lead->asignado_nombre = $comercialAsignado ? $comercialAsignado->personal->nombre_completo : 'Sin asignar';
+        $lead->prefijo_codigo = $lead->prefijo?->codigo;
+        
+        $notas = $this->getLeadNotes($leadId);
+        $comentarios = $this->getLeadComments($leadId);
+        $notificaciones = $this->getLeadNotifications($leadId, $usuarioId);
+        $tiemposEstados = $this->getStateTransitionTimes($leadId);
+        
+        // Obtener presupuestos unificados
+        $presupuestosUnificados = $this->presupuestoService->getPresupuestosUnificados($lead);
+        $estadisticasPresupuestos = $this->presupuestoService->getEstadisticas($lead);
 
-    return [
-        'lead' => $lead,
-        'comercial_asignado' => $comercialAsignado,
-        'asignado_nombre' => $comercialAsignado ? $comercialAsignado->personal->nombre_completo : 'Sin asignar',
-        'notas' => $notas,
-        'comentarios' => $comentarios,
-        'notificaciones' => $notificaciones,
-        'tiempos_estados' => $tiemposEstados,
-        'presupuestos_legacy' => $presupuestosLegacy,
-        'estadisticas' => [
-            'total_notas' => $notas->count(),
-            'total_comentarios' => $comentarios->count(),
-            'total_notificaciones' => $notificaciones->count(),
-            'notificaciones_no_leidas' => $notificaciones->where('leida', false)->count(),
-            // Estadísticas de legacy
-            'total_presupuestos_legacy' => $estadisticasLegacy['total_presupuestos_legacy'],
-            'total_presupuestos_legacy_con_pdf' => $estadisticasLegacy['total_con_pdf'],
-            'total_importe_legacy' => $estadisticasLegacy['total_importe_formateado'],
-        ]
-    ];
-}
+        return [
+            'lead' => $lead,
+            'comercial_asignado' => $comercialAsignado,
+            'asignado_nombre' => $comercialAsignado ? $comercialAsignado->personal->nombre_completo : 'Sin asignar',
+            'notas' => $notas,
+            'comentarios' => $comentarios,
+            'notificaciones' => $notificaciones,
+            'tiempos_estados' => $tiemposEstados,
+            'presupuestos_nuevos' => $presupuestosUnificados['nuevos'],
+            'presupuestos_legacy' => $presupuestosUnificados['legacy'],
+            'estadisticas' => [
+                'total_notas' => $notas->count(),
+                'total_comentarios' => $comentarios->count(),
+                'total_notificaciones' => $notificaciones->count(),
+                'notificaciones_no_leidas' => $notificaciones->where('leida', false)->count(),
+                // Estadísticas de presupuestos
+                'total_presupuestos' => $estadisticasPresupuestos['total_presupuestos'],
+                'total_presupuestos_nuevos' => $estadisticasPresupuestos['total_nuevos'],
+                'total_presupuestos_legacy' => $estadisticasPresupuestos['total_legacy'],
+                'total_presupuestos_con_pdf' => $estadisticasPresupuestos['total_con_pdf'],
+                'total_importe_presupuestos' => $estadisticasPresupuestos['total_importe_formateado'],
+            ]
+        ];
+    }
 
     public function getAssignedComercial(?int $prefijoId): ?Comercial
     {

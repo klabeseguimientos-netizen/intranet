@@ -4,14 +4,15 @@ import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import LeadHeader from '@/components/leads/LeadHeader';
 import LeadStatsCards from '@/components/leads/LeadStatsCards';
-import LeadTabs, { Tab } from '@/components/leads/LeadTabs'; // Importamos Tab
+import LeadTabs, { Tab } from '@/components/leads/LeadTabs';
 import InfoTab from '@/components/leads/tabs/InfoTab';
 import NotasTab from '@/components/leads/tabs/NotasTab';
 import ComentariosTab from '@/components/leads/tabs/ComentariosTab';
 import TiemposTab from '@/components/leads/tabs/TiemposTab';
 import NotificacionesTab from '@/components/leads/tabs/NotificacionesTab';
-import PresupuestosLegacyTab from '@/components/leads/tabs/PresupuestosLegacyTab';
+import PresupuestosUnificadosTab from '@/components/leads/tabs/PresupuestosUnificadosTab';
 import NuevoComentarioModal from '@/components/Modals/NuevoComentarioModal';
+import AltaEmpresaModal from '@/components/empresa/AltaEmpresaModal';
 import EditarLeadModal from '@/components/Modals/EditarLeadModal';
 import { useLeadModals } from '@/hooks/useLeadModal';
 import { User, MessageSquare, Bell, TrendingUp, FileText } from 'lucide-react';
@@ -24,6 +25,7 @@ import {
   Provincia,
   Comercial
 } from '@/types/leads';
+import { PresupuestoNuevo, PresupuestoLegacy } from '@/types/presupuestos';
 
 interface PageProps {
   auth: {
@@ -38,19 +40,24 @@ interface PageProps {
   notas: Array<any>;
   comentarios: Array<any>;
   notificaciones: Array<any>;
-  presupuestos_legacy?: Array<any>;
+  presupuestos_nuevos?: PresupuestoNuevo[];
+  presupuestos_legacy?: PresupuestoLegacy[];
   estadisticas: {
     total_notas: number;
     total_comentarios: number;
     total_notificaciones: number;
-    total_presupuestos_legacy: number;
     notificaciones_no_leidas: number;
+    total_presupuestos: number;
+    total_presupuestos_nuevos: number;
+    total_presupuestos_legacy: number;
+    total_presupuestos_con_pdf: number;
+    total_importe_presupuestos: string;
   };
-  origenes?: Origen[];
+  origenes: Origen[]; 
   estadosLead?: EstadoLead[];
   tiposComentario?: TipoComentario[];
-  rubros?: Rubro[];
-  provincias?: Provincia[];
+  rubros: Rubro[];  
+  provincias: Provincia[];
   comerciales?: Comercial[];
 }
 
@@ -59,6 +66,7 @@ export default function Show({
   notas, 
   comentarios, 
   notificaciones,
+  presupuestos_nuevos = [],
   presupuestos_legacy = [],
   estadisticas,
   auth,
@@ -71,10 +79,21 @@ export default function Show({
 }: PageProps) {
   const [activeTab, setActiveTab] = useState('informacion');
   const { modals, abrirModal, cerrarModales } = useLeadModals();
+  
+  // Estado para el modal de alta de empresa
+  const [altaEmpresaModal, setAltaEmpresaModal] = useState<{
+    isOpen: boolean;
+    presupuestoId: number | null;
+    lead: Lead | null;
+  }>({
+    isOpen: false,
+    presupuestoId: null,
+    lead: null
+  });
 
   const puedeVerTiempos = auth.user.ve_todas_cuentas === true || auth.user.rol_id !== 5;
 
-  // Construir tabs condicionalmente - TIPADO EXPLÍCITO
+  // Construir tabs condicionalmente
   const tabs: Tab[] = [
     { id: 'informacion', label: 'Información', icon: <User className="h-4 w-4" /> },
   ];
@@ -116,15 +135,33 @@ export default function Show({
     });
   }
 
-  // Presupuestos legacy solo si hay
-  if (estadisticas.total_presupuestos_legacy > 0) {
+  // Presupuestos unificados (solo si hay alguno)
+  if (estadisticas.total_presupuestos > 0) {
     tabs.push({ 
-      id: 'presupuestos-legacy', 
-      label: 'Presupuestos Anteriores', 
+      id: 'presupuestos', 
+      label: 'Presupuestos', 
       icon: <FileText className="h-4 w-4" />, 
-      count: estadisticas.total_presupuestos_legacy 
+      count: estadisticas.total_presupuestos 
     });
   }
+
+  // Función para abrir el modal de alta de empresa
+  const handleAbrirAltaEmpresa = (presupuestoId: number, lead: Lead) => {
+    setAltaEmpresaModal({
+      isOpen: true,
+      presupuestoId,
+      lead
+    });
+  };
+
+  // Función para cerrar el modal de alta de empresa
+  const handleCloseAltaEmpresaModal = () => {
+    setAltaEmpresaModal({
+      isOpen: false,
+      presupuestoId: null,
+      lead: null
+    });
+  };
 
   // Asegurar que el activeTab sea válido
   useEffect(() => {
@@ -152,8 +189,18 @@ export default function Show({
         return <TiemposTab leadId={lead.id} puedeVer={puedeVerTiempos} />;
       case 'notificaciones':
         return <NotificacionesTab notificaciones={notificaciones} />;
-      case 'presupuestos-legacy':
-        return <PresupuestosLegacyTab presupuestos={presupuestos_legacy} />;
+      case 'presupuestos':
+        return (
+          <PresupuestosUnificadosTab 
+            presupuestosNuevos={presupuestos_nuevos}
+            presupuestosLegacy={presupuestos_legacy}
+            lead={lead}
+            origenes={origenes}
+            rubros={rubros}
+            provincias={provincias}
+            onAltaEmpresa={handleAbrirAltaEmpresa}
+          />
+        );
       default:
         return null;
     }
@@ -172,17 +219,17 @@ export default function Show({
           />
         </div>
 
-        {/* Stats Cards - solo si hay alguna estadística relevante */}
+        {/* Stats Cards */}
         {(estadisticas.total_notas > 0 || 
           estadisticas.total_comentarios > 0 || 
           estadisticas.total_notificaciones > 0 || 
-          estadisticas.total_presupuestos_legacy > 0) && (
+          estadisticas.total_presupuestos > 0) && (
           <div className="mb-4 sm:mb-6 w-full">
             <LeadStatsCards estadisticas={estadisticas} />
           </div>
         )}
 
-        {/* Solo mostrar tabs si hay más de 1 (información + algo más) */}
+        {/* Solo mostrar tabs si hay más de 1 */}
         {tabs.length > 1 && (
           <div className="mb-4 sm:mb-6 w-full">
             <LeadTabs
@@ -222,6 +269,16 @@ export default function Show({
         onSuccess={() => {
           router.reload();
         }}
+      />
+
+      <AltaEmpresaModal
+        isOpen={altaEmpresaModal.isOpen}
+        onClose={handleCloseAltaEmpresaModal}
+        presupuestoId={altaEmpresaModal.presupuestoId}
+        lead={altaEmpresaModal.lead}
+        origenes={origenes}
+        rubros={rubros}
+        provincias={provincias}
       />
     </AppLayout>
   );

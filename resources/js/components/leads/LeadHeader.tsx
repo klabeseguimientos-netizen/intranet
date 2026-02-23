@@ -1,7 +1,7 @@
 // resources/js/components/leads/LeadHeader.tsx
 import React from 'react';
-import { ArrowLeft, User, UserCheck, Hash, Briefcase, Target, Calendar, Award, Edit, MessageSquare } from 'lucide-react';
-import { router } from '@inertiajs/react';
+import { ArrowLeft, User, UserCheck, Hash, Briefcase, Target, Calendar, Award, Edit, MessageSquare, FileText } from 'lucide-react';
+import { router, Link } from '@inertiajs/react';
 import { Lead } from '@/types/leads';
 
 interface LeadHeaderProps {
@@ -124,6 +124,15 @@ const getBadgeEstado = () => {
       
       {/* Acciones */}
       <div className="flex items-center gap-2">
+        {/* NUEVO BOTÓN DE PRESUPUESTO */}
+        <Link
+          href={`/comercial/presupuestos/create?lead_id=${lead.id}`}
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
+        >
+          <FileText className="h-4 w-4" />
+          <span className="hidden sm:inline">Presupuesto</span>
+        </Link>
+
         <button
           onClick={onEditar}
           className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"

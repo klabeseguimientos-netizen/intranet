@@ -10,6 +10,8 @@ use Illuminate\Validation\Rules\Password;
 use App\Services\Lead\LeadStatisticsService;
 use App\Services\Lead\LeadQueryService;
 use App\Services\Lead\LeadPresupuestoLegacyService; // Importar nuevo servicio
+use App\Services\Presupuesto\PresupuestoNotificationService;
+
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -21,8 +23,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(LeadStatisticsService::class);
         $this->app->singleton(LeadQueryService::class);
         $this->app->singleton(LeadPresupuestoLegacyService::class); // Registrar nuevo servicio
-        
-        // También podemos registrar el LeadDetailsService aquí si queremos
+        $this->app->singleton(PresupuestoNotificationService::class);
         $this->app->singleton(\App\Services\Lead\LeadDetailsService::class);
     }
 

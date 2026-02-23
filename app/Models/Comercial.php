@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Comercial extends Model
 {
@@ -35,11 +36,10 @@ class Comercial extends Model
         'modified' => 'datetime'
     ];
     
-    public function personal()
+    public function personal(): BelongsTo
     {
-        return $this->belongsTo(Personal::class);
+        return $this->belongsTo(Personal::class, 'personal_id');
     }
-    
     public function leads()
     {
         return $this->hasMany(Lead::class, 'prefijo_id', 'prefijo_id');
