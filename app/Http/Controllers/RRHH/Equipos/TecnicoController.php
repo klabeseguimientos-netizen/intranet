@@ -1,7 +1,7 @@
 <?php
-// app/Http/Controllers/rrhh/Equipos/TecnicoController.php
+// app/Http/Controllers/RRHH/Equipos/TecnicoController.php
 
-namespace App\Http\Controllers\rrhh\Equipos;
+namespace App\Http\Controllers\RRHH\Equipos;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -42,7 +42,7 @@ class TecnicoController extends Controller
 
         \Log::info('Personal disponible:', ['count' => $personalDisponible->count()]);
 
-        return Inertia::render('rrhh/Equipos/TecnicoForm', [
+        return Inertia::render('RRHH/Equipos/TecnicoForm', [
             'personalDisponible' => $personalDisponible,
             'modo' => 'crear',
         ]);
@@ -121,7 +121,7 @@ class TecnicoController extends Controller
             \Log::info('Transacción completada. Técnico ID:', ['id' => $tecnico->id]);
             \Log::info('Datos del técnico creado:', $tecnico->toArray());
 
-            return redirect()->route('rrhh.equipos.tecnico')
+            return redirect()->route('RRHH.equipos.tecnico')
                 ->with('success', 'Técnico creado exitosamente.');
 
         } catch (\Exception $e) {
@@ -154,7 +154,7 @@ class TecnicoController extends Controller
                 'activo' => $tecnico->activo
             ]);
 
-            return Inertia::render('rrhh/Equipos/TecnicoForm', [
+            return Inertia::render('RRHH/Equipos/TecnicoForm', [
                 'tecnico' => [
                     'id' => $tecnico->id,
                     'personal_id' => $tecnico->personal_id,
@@ -169,7 +169,7 @@ class TecnicoController extends Controller
             ]);
         } catch (\Exception $e) {
             \Log::error('Error fetching técnico for edit: ' . $e->getMessage());
-            return redirect()->route('rrhh.equipos.tecnico')
+            return redirect()->route('RRHH.equipos.tecnico')
                 ->with('error', 'Técnico no encontrado.');
         }
     }
@@ -241,7 +241,7 @@ class TecnicoController extends Controller
                 'modified_by' => $tecnico->modified_by
             ]);
 
-            return redirect()->route('rrhh.equipos.tecnico')
+            return redirect()->route('RRHH.equipos.tecnico')
                 ->with('success', 'Técnico actualizado exitosamente.');
 
         } catch (\Exception $e) {
@@ -291,14 +291,14 @@ class TecnicoController extends Controller
                 'deleted_by' => $tecnico->deleted_by
             ]);
 
-            return redirect()->route('rrhh.equipos.tecnico')
+            return redirect()->route('RRHH.equipos.tecnico')
                 ->with('success', 'Técnico eliminado exitosamente.');
 
         } catch (\Exception $e) {
             DB::rollBack();
             \Log::error('Error deleting técnico: ' . $e->getMessage());
             
-            return redirect()->route('rrhh.equipos.tecnico')
+            return redirect()->route('RRHH.equipos.tecnico')
                 ->with('error', 'Error al eliminar el técnico: ' . $e->getMessage());
         }
     }
