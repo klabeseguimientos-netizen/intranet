@@ -1,5 +1,5 @@
 <?php
-// app/Http/Controllers/RRHH/Personal/DatosPersonalesController.php
+// app/Http/Controllers/rrhh/Personal/DatosPersonalesController.php
 
 namespace App\Http\Controllers\RRHH\Personal;
 
@@ -35,7 +35,7 @@ class DatosPersonalesController extends Controller
             $tiposCount[$tipo->nombre] = $personal->where('tipo_personal_id', $tipo->id)->count();
         }
         
-        return Inertia::render('RRHH/Personal/DatosPersonales', [
+        return Inertia::render('rrhh/Personal/DatosPersonales', [
             'personal' => $personal,
             'tiposPersonal' => $tiposPersonal,
             'estadisticas' => [

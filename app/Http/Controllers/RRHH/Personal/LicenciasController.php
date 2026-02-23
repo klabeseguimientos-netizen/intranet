@@ -9,6 +9,6 @@ class LicenciasController extends Controller
 {
     public function index()
     {
-        return Inertia::render('RRHH/Personal/Licencias');
+        return Inertia::render('rrhh/Personal/Licencias');
     }
 }

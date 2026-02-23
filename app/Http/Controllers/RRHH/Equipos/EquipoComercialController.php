@@ -9,6 +9,6 @@ class EquipoComercialController extends Controller
 {
     public function index()
     {
-        return Inertia::render('RRHH/Equipos/EquipoComercial');
+        return Inertia::render('rrhh/Equipos/EquipoComercial');
     }
 }

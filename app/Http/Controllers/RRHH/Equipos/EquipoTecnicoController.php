@@ -55,7 +55,7 @@ class EquipoTecnicoController extends Controller
             // Obtener lista de provincias únicas para filtros
             $provincias = $tecnicos->pluck('provincia')->unique()->filter()->sort()->values();
 
-            return Inertia::render('RRHH/Equipos/EquipoTecnico', [
+            return Inertia::render('rrhh/Equipos/EquipoTecnico', [
                 'tecnicos' => $tecnicos,
                 'tecnicosPorProvincia' => $tecnicosPorProvincia,
                 'provincias' => $provincias,
@@ -67,7 +67,7 @@ class EquipoTecnicoController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error en EquipoTecnicoController: ' . $e->getMessage());
             
-            return Inertia::render('RRHH/Equipos/EquipoTecnico', [
+            return Inertia::render('rrhh/Equipos/EquipoTecnico', [
                 'tecnicos' => [],
                 'tecnicosPorProvincia' => [],
                 'provincias' => [],

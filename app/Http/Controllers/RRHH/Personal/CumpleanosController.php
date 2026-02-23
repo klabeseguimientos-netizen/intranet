@@ -1,5 +1,5 @@
 <?php
-// app/Http/Controllers/RRHH/Personal/CumpleanosController.php
+// app/Http/Controllers/rrhh/Personal/CumpleanosController.php
 
 namespace App\Http\Controllers\RRHH\Personal;
 
@@ -27,7 +27,7 @@ class CumpleanosController extends Controller
             ")
             ->get();
         
-        return Inertia::render('RRHH/Personal/Cumpleanos', [
+        return Inertia::render('rrhh/Personal/Cumpleanos', [
             'personal' => $personal,
             'filtros' => $request->only(['mes', 'departamento']),
         ]);

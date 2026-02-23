@@ -1,4 +1,4 @@
-// resources/js/Pages/RRHH/Equipos/TecnicoForm.tsx
+// resources/js/Pages/rrhh/Equipos/TecnicoForm.tsx
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import { useForm, usePage } from '@inertiajs/react';
@@ -91,7 +91,7 @@ export default function TecnicoForm({ tecnico, personalDisponible = [], modo, er
         
         if (modo === 'crear') {
             // CORREGIDO: Enviar con un solo objeto que incluye datos y opciones
-            post('/RRHH/tecnicos', {
+            post('/rrhh/tecnicos', {
                 ...datosEnviar,
                 preserveScroll: true,
                 onSuccess: () => {
@@ -103,7 +103,7 @@ export default function TecnicoForm({ tecnico, personalDisponible = [], modo, er
             });
         } else {
             // CORREGIDO: Enviar con un solo objeto que incluye datos y opciones
-            put(`/RRHH/tecnicos/${tecnico?.id}`, {
+            put(`/rrhh/tecnicos/${tecnico?.id}`, {
                 ...datosEnviar,
                 preserveScroll: true,
                 onSuccess: () => {
@@ -156,7 +156,7 @@ export default function TecnicoForm({ tecnico, personalDisponible = [], modo, er
                 <div className="mb-6">
                     <div className="flex items-center gap-4 mb-4">
                         <a
-                            href="/RRHH/equipos/tecnico"
+                            href="/rrhh/equipos/tecnico"
                             className="text-gray-600 hover:text-gray-900"
                         >
                             <ArrowLeft size={20} />
@@ -338,7 +338,7 @@ export default function TecnicoForm({ tecnico, personalDisponible = [], modo, er
                         {/* Botones de acción */}
                         <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-3">
                             <a
-                                href="/RRHH/equipos/tecnico"
+                                href="/rrhh/equipos/tecnico"
                                 className="px-4 py-2 text-sm border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors"
                             >
                                 Cancelar
