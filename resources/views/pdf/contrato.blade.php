@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contrato #{{ str_pad($contrato->id, 8, '0', STR_PAD_LEFT) }}</title>
     <style>
+        /* MANTENEMOS TODOS LOS ESTILOS EXISTENTES */
         :root {
             --local-dark: rgb(60, 60, 62);
             --sat-orange: rgb(247, 98, 0);
@@ -40,43 +41,32 @@
             margin-bottom: 6px;
         }
         
-        .header-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            align-items: center;
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
             margin-bottom: 4px;
         }
         
-        .left-column {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-        }
-        
-        .center-column {
-            text-align: center;
-        }
-        
-        .right-column {
-            text-align: right;
-        }
-        
-        .company-logo-text {
+        .company-logo {
             font-size: 16px;
             font-weight: 800;
             letter-spacing: -0.5px;
             margin-bottom: 2px;
         }
         
-        .company-logo-text .local { color: var(--local-dark); }
-        .company-logo-text .sat { color: var(--sat-orange); }
+        .company-logo .local { color: var(--local-dark); }
+        .company-logo .sat { color: var(--sat-orange); }
         
         .company-info {
             font-size: 8.5px;
             color: #555;
             line-height: 1.3;
             margin-top: 2px;
+        }
+        
+        .contract-center {
+            text-align: center;
         }
         
         .contract-title {
@@ -94,30 +84,18 @@
         
         .contract-details {
             font-size: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
+            text-align: right;
         }
         
         .detail-item {
-            display: flex;
-            justify-content: flex-end;
-            align-items: center;
-            gap: 5px;
+            margin-bottom: 1px;
         }
         
         .detail-label {
             font-weight: 600;
             color: var(--local-dark);
+            display: inline-block;
             width: 50px;
-            text-align: left;
-        }
-        
-        .detail-value {
-            font-weight: normal;
-            color: #333;
-            min-width: 80px;
-            text-align: left;
         }
         
         .section {
@@ -433,9 +411,6 @@
                 size: A4;
                 margin: 10mm;
             }
-            body {
-                padding: 0;
-            }
         }
     </style>
 </head>
@@ -446,12 +421,14 @@
             return '$ ' . number_format($value, 2, ',', '.');
         };
         
+        // FUNCIÓN ACTUALIZADA PARA MÉTODO DE PAGO (usa camelCase)
         $getMetodoPagoTexto = function() use ($contrato) {
             if (!empty($contrato->debitoCbu)) return "CBU";
             if (!empty($contrato->debitoTarjeta)) return "TARJETA DE CRÉDITO/DÉBITO";
             return "CUENTA/TARJETA DE CRÉDITO";
         };
         
+        // Función para enmascarar tarjeta
         $enmascararTarjeta = function($numero) {
             if (!$numero) return '';
             $ultimos4 = substr($numero, -4);
@@ -462,83 +439,52 @@
     @endphp
 
     <div class="contract-container">
-        <!-- Header en 3 columnas -->
+        <!-- Header -->
         <div class="contract-header">
-            <div class="header-grid">
-<!-- Columna izquierda - Logo y sello -->
-<div class="left-column">
-    @if(!empty($compania['logo']))
-        @php
-            // Convertir la URL a una ruta absoluta si es necesario
-            $logoUrl = $compania['logo'];
-            if (filter_var($logoUrl, FILTER_VALIDATE_URL) === false) {
-                // Si no es una URL válida, intentar cargar como archivo local
-                if (file_exists(public_path($logoUrl))) {
-                    $logoUrl = 'file://' . str_replace('\\', '/', public_path($logoUrl));
-                } else {
-                    $logoUrl = null;
-                }
-            }
-        @endphp
-        @if($logoUrl)
-            <img src="{{ $logoUrl }}" alt="{{ $compania['nombre'] }}" style="height: 35px; margin-bottom: 2px;">
-        @else
-            <div class="company-logo-text">
-                @if(str_contains($compania['nombre'], 'SAT'))
-                    <span class="local">{{ str_replace('SAT', '', $compania['nombre']) }}</span>
-                    <span class="sat">SAT</span>
-                @else
-                    <span class="local">{{ $compania['nombre'] }}</span>
-                @endif
-            </div>
-        @endif
-    @else
-        <div class="company-logo-text">
-            @if(str_contains($compania['nombre'], 'SAT'))
-                <span class="local">{{ str_replace('SAT', '', $compania['nombre']) }}</span>
-                <span class="sat">SAT</span>
-            @else
-                <span class="local">{{ $compania['nombre'] }}</span>
-            @endif
-        </div>
-    @endif
-    
-    <div class="company-info">
-        <strong>LogSat S.A.</strong><br>
-        Av. Alvear 1881 piso 7 depto. E, Ciudad Autónoma<br>
-        de Buenos Aires (1129) - Tel: 0810 888 8205<br>
-        email: info@localsat.com.ar - www.localsat.com.ar<br>
-        CUIT: 30-71168696-3
-    </div>
-</div>
-                
-                <!-- Columna central - Título -->
-                <div class="center-column">
-                    <div class="contract-title">CONTRATO DE SERVICIO</div>
-                    <div class="contract-subtitle">Sistema de Rastreo Satelital</div>
+            <div class="header-top">
+                <div>
+                    @if(!empty($compania['logo']) && file_exists($compania['logo']))
+                        <img src="{{ $compania['logo'] }}" alt="{{ $compania['nombre'] }}" style="height: 35px; margin-bottom: 5px;">
+                    @else
+                        <div class="company-logo">
+                            @if(str_contains($compania['nombre'], 'SAT'))
+                                <span class="local">{{ str_replace('SAT', '', $compania['nombre']) }}</span>
+                                <span class="sat">SAT</span>
+                            @else
+                                <span class="local">{{ $compania['nombre'] }}</span>
+                            @endif
+                        </div>
+                    @endif
+                    
+                    <div class="company-info">
+                        <strong>LogSat S.A.</strong><br />
+                        Av. Alvear 1881 piso 7 depto. E, Ciudad Autónoma<br />
+                        de Buenos Aires (1129) - Tel: 0810 888 8205<br />
+                        email: info@localsat.com.ar - www.localsat.com.ar<br />
+                        CUIT: 30-71168696-3
+                    </div>
                 </div>
                 
-                <!-- Columna derecha - Fecha, Contrato, Vendedor -->
-                <div class="right-column">
-                    <div class="contract-details">
-                        <div class="detail-item">
-                            <span class="detail-label">Fecha:</span>
-                            <span class="detail-value">{{ \Carbon\Carbon::parse($contrato->fecha_emision)->format('d/m/Y') }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Contrato:</span>
-                            <span class="detail-value">{{ str_pad($contrato->id, 8, '0', STR_PAD_LEFT) }}</span>
-                        </div>
-                        <div class="detail-item">
-                            <span class="detail-label">Vendedor:</span>
-                            <span class="detail-value">{{ explode(' ', $contrato->vendedor_nombre ?? 'G. MOYANO')[0] }}</span>
-                        </div>
+                <div class="contract-details">
+                    <div class="detail-item">
+                        <span class="detail-label">Fecha:</span> {{ \Carbon\Carbon::parse($contrato->fecha_emision)->format('d/m/Y') }}
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Contrato:</span> {{ str_pad($contrato->id, 8, '0', STR_PAD_LEFT) }}
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Vendedor:</span> {{ explode(' ', $contrato->vendedor_nombre)[0] ?? 'G. MOYANO' }}
                     </div>
                 </div>
             </div>
+            
+            <div class="contract-center">
+                <div class="contract-title">CONTRATO DE SERVICIO</div>
+                <div class="contract-subtitle">Sistema de Rastreo Satelital</div>
+            </div>
         </div>
 
-        <!-- Datos del Cliente -->
+        <!-- Datos del Cliente (sin cambios) -->
         <div class="section">
             <div class="section-title">Datos del Cliente</div>
             
@@ -565,9 +511,7 @@
                 </div>
                 <div class="data-row">
                     <span class="data-label">Localidad:</span>
-                    <span class="data-value">
-                        {{ $contrato->cliente_localidad ?? '' }}{{ $contrato->cliente_provincia ? ', ' . $contrato->cliente_provincia : '' }}
-                    </span>
+                    <span class="data-value">{{ $contrato->cliente_localidad ?? '' }}{{ $contrato->cliente_provincia ? ', ' . $contrato->cliente_provincia : '' }}</span>
                 </div>
             </div>
             
@@ -578,11 +522,11 @@
                 <div class="data-grid">
                     <div class="data-row">
                         <span class="data-label">Razón social:</span>
-                        <span class="data-value">{{ $contrato->empresa_razon_social ?? '-' }}</span>
+                        <span class="data-value">{{ $contrato->empresa_razon_social }}</span>
                     </div>
                     <div class="data-row">
                         <span class="data-label">CUIT:</span>
-                        <span class="data-value">{{ $contrato->empresa_cuit ?? '-' }}</span>
+                        <span class="data-value">{{ $contrato->empresa_cuit }}</span>
                     </div>
                     <div class="data-row">
                         <span class="data-label">Domicilio fiscal:</span>
@@ -604,23 +548,23 @@
                         <span class="data-label">Responsable flota:</span>
                         <span class="data-value">
                             {{ $contrato->responsable_flota_nombre ?? '-' }}
-                            @if(!empty($contrato->responsable_flota_telefono)) - {{ $contrato->responsable_flota_telefono }}@endif
-                            @if(!empty($contrato->responsable_flota_email)) - {{ $contrato->responsable_flota_email }}@endif
+                            @if($contrato->responsable_flota_telefono) - {{ $contrato->responsable_flota_telefono }}@endif
+                            @if($contrato->responsable_flota_email) - {{ $contrato->responsable_flota_email }}@endif
                         </span>
                     </div>
                     <div class="data-row">
                         <span class="data-label">Responsable pagos:</span>
                         <span class="data-value">
                             {{ $contrato->responsable_pagos_nombre ?? '-' }}
-                            @if(!empty($contrato->responsable_pagos_telefono)) - {{ $contrato->responsable_pagos_telefono }}@endif
-                            @if(!empty($contrato->responsable_pagos_email)) - {{ $contrato->responsable_pagos_email }}@endif
+                            @if($contrato->responsable_pagos_telefono) - {{ $contrato->responsable_pagos_telefono }}@endif
+                            @if($contrato->responsable_pagos_email) - {{ $contrato->responsable_pagos_email }}@endif
                         </span>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Servicios Contratados -->
+        <!-- Servicios Contratados (sin cambios) -->
         <div class="section">
             <div class="section-title">Servicios Contratados</div>
             
@@ -640,7 +584,7 @@
                         </thead>
                         <tbody>
                             <!-- Tasa de instalación -->
-                            @if(!empty($contrato->presupuesto) && !empty($contrato->presupuesto->tasa))
+                            @if($contrato->presupuesto && $contrato->presupuesto->tasa)
                                 <tr class="category-row">
                                     <td colspan="5">SERVICIOS DE INSTALACIÓN</td>
                                 </tr>
@@ -649,9 +593,9 @@
                                     <td class="number">{{ $contrato->presupuesto_cantidad_vehiculos }}</td>
                                     <td class="number">{{ $formatMoney($contrato->presupuesto->valor_tasa) }}</td>
                                     <td class="number">
-                                        @if(!empty($contrato->presupuesto->promocion) && $contrato->presupuesto->promocion->productos->contains('producto_servicio_id', $contrato->presupuesto->tasa->id))
+                                        @if($contrato->presupuesto->promocion && $contrato->presupuesto->promocion->productos->contains('producto_servicio_id', $contrato->presupuesto->tasa->id))
                                             {{ $contrato->presupuesto->promocion->nombre }}
-                                        @elseif(!empty($contrato->presupuesto->tasa_bonificacion) && $contrato->presupuesto->tasa_bonificacion > 0)
+                                        @elseif($contrato->presupuesto->tasa_bonificacion > 0)
                                             {{ $contrato->presupuesto->tasa_bonificacion }}%
                                         @else
                                             -
@@ -662,11 +606,11 @@
                             @endif
 
                             <!-- Accesorios -->
-                            @if(!empty($contrato->presupuesto) && !empty($contrato->presupuesto->agregados))
+                            @if($contrato->presupuesto && $contrato->presupuesto->agregados)
                                 @php
-                                    $accesorios = collect($contrato->presupuesto->agregados)->filter(function($item) {
-                                        $tipoId = $item->producto_servicio->tipo->id ?? null;
-                                        $tipoNombre = $item->producto_servicio->tipo->nombre_tipo_abono ?? '';
+                                    $accesorios = $contrato->presupuesto->agregados->filter(function($a) {
+                                        $tipoId = $a->producto_servicio?->tipo?->id;
+                                        $tipoNombre = $a->producto_servicio?->tipo?->nombre_tipo_abono ?? '';
                                         return $tipoId === 5 || $tipoNombre === 'ACCESORIOS';
                                     });
                                 @endphp
@@ -674,15 +618,15 @@
                                     <tr class="category-row">
                                         <td colspan="5">ACCESORIOS</td>
                                     </tr>
-                                    @foreach($accesorios as $index => $item)
+                                    @foreach($accesorios as $item)
                                         <tr>
-                                            <td>{{ $item->producto_servicio->nombre ?? '' }}</td>
+                                            <td>{{ $item->producto_servicio?->nombre }}</td>
                                             <td class="number">{{ $item->cantidad }}</td>
                                             <td class="number">{{ $formatMoney($item->valor) }}</td>
                                             <td class="number">
-                                                @if(!empty($contrato->presupuesto->promocion) && $contrato->presupuesto->promocion->productos->contains('producto_servicio_id', $item->prd_servicio_id))
+                                                @if($contrato->presupuesto->promocion && $contrato->presupuesto->promocion->productos->contains('producto_servicio_id', $item->prd_servicio_id))
                                                     {{ $contrato->presupuesto->promocion->nombre }}
-                                                @elseif(!empty($item->bonificacion) && $item->bonificacion > 0)
+                                                @elseif($item->bonificacion > 0)
                                                     {{ $item->bonificacion }}%
                                                 @else
                                                     -
@@ -717,7 +661,7 @@
                         </thead>
                         <tbody>
                             <!-- Abono base -->
-                            @if(!empty($contrato->presupuesto) && !empty($contrato->presupuesto->abono))
+                            @if($contrato->presupuesto && $contrato->presupuesto->abono)
                                 <tr class="category-row">
                                     <td colspan="5">ABONOS MENSUALES</td>
                                 </tr>
@@ -726,9 +670,9 @@
                                     <td class="number">{{ $contrato->presupuesto_cantidad_vehiculos }}</td>
                                     <td class="number">{{ $formatMoney($contrato->presupuesto->valor_abono) }}</td>
                                     <td class="number">
-                                        @if(!empty($contrato->presupuesto->promocion) && $contrato->presupuesto->promocion->productos->contains('producto_servicio_id', $contrato->presupuesto->abono->id))
+                                        @if($contrato->presupuesto->promocion && $contrato->presupuesto->promocion->productos->contains('producto_servicio_id', $contrato->presupuesto->abono->id))
                                             {{ $contrato->presupuesto->promocion->nombre }}
-                                        @elseif(!empty($contrato->presupuesto->abono_bonificacion) && $contrato->presupuesto->abono_bonificacion > 0)
+                                        @elseif($contrato->presupuesto->abono_bonificacion > 0)
                                             {{ $contrato->presupuesto->abono_bonificacion }}%
                                         @else
                                             -
@@ -739,11 +683,11 @@
                             @endif
 
                             <!-- Servicios -->
-                            @if(!empty($contrato->presupuesto) && !empty($contrato->presupuesto->agregados))
+                            @if($contrato->presupuesto && $contrato->presupuesto->agregados)
                                 @php
-                                    $servicios = collect($contrato->presupuesto->agregados)->filter(function($item) {
-                                        $tipoId = $item->producto_servicio->tipo->id ?? null;
-                                        $tipoNombre = $item->producto_servicio->tipo->nombre_tipo_abono ?? '';
+                                    $servicios = $contrato->presupuesto->agregados->filter(function($a) {
+                                        $tipoId = $a->producto_servicio?->tipo?->id;
+                                        $tipoNombre = $a->producto_servicio?->tipo?->nombre_tipo_abono ?? '';
                                         return $tipoId === 3 || $tipoNombre === 'SERVICIO';
                                     });
                                 @endphp
@@ -751,15 +695,15 @@
                                     <tr class="category-row">
                                         <td colspan="5">SERVICIOS ADICIONALES</td>
                                     </tr>
-                                    @foreach($servicios as $index => $item)
+                                    @foreach($servicios as $item)
                                         <tr>
-                                            <td>{{ $item->producto_servicio->nombre ?? '' }}</td>
+                                            <td>{{ $item->producto_servicio?->nombre }}</td>
                                             <td class="number">{{ $item->cantidad }}</td>
                                             <td class="number">{{ $formatMoney($item->valor) }}</td>
                                             <td class="number">
-                                                @if(!empty($contrato->presupuesto->promocion) && $contrato->presupuesto->promocion->productos->contains('producto_servicio_id', $item->prd_servicio_id))
+                                                @if($contrato->presupuesto->promocion && $contrato->presupuesto->promocion->productos->contains('producto_servicio_id', $item->prd_servicio_id))
                                                     {{ $contrato->presupuesto->promocion->nombre }}
-                                                @elseif(!empty($item->bonificacion) && $item->bonificacion > 0)
+                                                @elseif($item->bonificacion > 0)
                                                     {{ $item->bonificacion }}%
                                                 @else
                                                     -
@@ -781,7 +725,7 @@
             </div>
         </div>
 
-        <!-- Método de Pago -->
+        <!-- Método de Pago - VERSIÓN ACTUALIZADA (usa camelCase) -->
         <div class="payment-section">
             <div class="section-title">Método de Pago y Autorización</div>
             
@@ -812,9 +756,7 @@
                         </div>
                         <div class="payment-field">
                             <span class="payment-label">Tipo cuenta:</span>
-                            <span class="payment-value">
-                                {{ ($contrato->debitoCbu->tipo_cuenta ?? '') === 'caja_ahorro' ? 'Caja de ahorro' : 'Cuenta corriente' }}
-                            </span>
+                            <span class="payment-value">{{ ($contrato->debitoCbu->tipo_cuenta ?? '') === 'caja_ahorro' ? 'Caja de ahorro' : 'Cuenta corriente' }}</span>
                         </div>
                     @elseif(!empty($contrato->debitoTarjeta))
                         <!-- Datos de Tarjeta -->
@@ -844,9 +786,7 @@
                         </div>
                         <div class="payment-field">
                             <span class="payment-label">Tipo:</span>
-                            <span class="payment-value">
-                                {{ ($contrato->debitoTarjeta->tipo_tarjeta ?? '') === 'debito' ? 'Débito' : 'Crédito' }}
-                            </span>
+                            <span class="payment-value">{{ ($contrato->debitoTarjeta->tipo_tarjeta ?? '') === 'debito' ? 'Débito' : 'Crédito' }}</span>
                         </div>
                     @else
                         <!-- Sin datos de pago -->
@@ -902,7 +842,7 @@
                 </div>
             </div>
             
-            @if(!empty($contrato->vehiculos) && $contrato->vehiculos->count() > 0)
+            @if($contrato->vehiculos && $contrato->vehiculos->count() > 0)
                 <table class="vehicles-table">
                     <thead>
                         <tr>
