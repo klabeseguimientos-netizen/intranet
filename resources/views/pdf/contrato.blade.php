@@ -465,29 +465,52 @@
         <!-- Header en 3 columnas -->
         <div class="contract-header">
             <div class="header-grid">
-                <!-- Columna izquierda - Logo y sello -->
-                <div class="left-column">
-                    @if(!empty($compania['logo']) && file_exists(public_path($compania['logo'])))
-                        <img src="{{ public_path($compania['logo']) }}" alt="{{ $compania['nombre'] }}" style="height: 35px; margin-bottom: 2px;">
-                    @else
-                        <div class="company-logo-text">
-                            @if(str_contains($compania['nombre'], 'SAT'))
-                                <span class="local">{{ str_replace('SAT', '', $compania['nombre']) }}</span>
-                                <span class="sat">SAT</span>
-                            @else
-                                <span class="local">{{ $compania['nombre'] }}</span>
-                            @endif
-                        </div>
-                    @endif
-                    
-                    <div class="company-info">
-                        <strong>LogSat S.A.</strong><br>
-                        Av. Alvear 1881 piso 7 depto. E, Ciudad Autónoma<br>
-                        de Buenos Aires (1129) - Tel: 0810 888 8205<br>
-                        email: info@localsat.com.ar - www.localsat.com.ar<br>
-                        CUIT: 30-71168696-3
-                    </div>
-                </div>
+<!-- Columna izquierda - Logo y sello -->
+<div class="left-column">
+    @if(!empty($compania['logo']))
+        @php
+            // Convertir la URL a una ruta absoluta si es necesario
+            $logoUrl = $compania['logo'];
+            if (filter_var($logoUrl, FILTER_VALIDATE_URL) === false) {
+                // Si no es una URL válida, intentar cargar como archivo local
+                if (file_exists(public_path($logoUrl))) {
+                    $logoUrl = 'file://' . str_replace('\\', '/', public_path($logoUrl));
+                } else {
+                    $logoUrl = null;
+                }
+            }
+        @endphp
+        @if($logoUrl)
+            <img src="{{ $logoUrl }}" alt="{{ $compania['nombre'] }}" style="height: 35px; margin-bottom: 2px;">
+        @else
+            <div class="company-logo-text">
+                @if(str_contains($compania['nombre'], 'SAT'))
+                    <span class="local">{{ str_replace('SAT', '', $compania['nombre']) }}</span>
+                    <span class="sat">SAT</span>
+                @else
+                    <span class="local">{{ $compania['nombre'] }}</span>
+                @endif
+            </div>
+        @endif
+    @else
+        <div class="company-logo-text">
+            @if(str_contains($compania['nombre'], 'SAT'))
+                <span class="local">{{ str_replace('SAT', '', $compania['nombre']) }}</span>
+                <span class="sat">SAT</span>
+            @else
+                <span class="local">{{ $compania['nombre'] }}</span>
+            @endif
+        </div>
+    @endif
+    
+    <div class="company-info">
+        <strong>LogSat S.A.</strong><br>
+        Av. Alvear 1881 piso 7 depto. E, Ciudad Autónoma<br>
+        de Buenos Aires (1129) - Tel: 0810 888 8205<br>
+        email: info@localsat.com.ar - www.localsat.com.ar<br>
+        CUIT: 30-71168696-3
+    </div>
+</div>
                 
                 <!-- Columna central - Título -->
                 <div class="center-column">

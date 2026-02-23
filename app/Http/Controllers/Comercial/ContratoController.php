@@ -490,8 +490,8 @@ public function descargarPdf($id)
 {
     $contrato = Contrato::with([
         'vehiculos',
-        'debitoCbu',
-        'debitoTarjeta',
+        'debitoCbu',        // Mantener camelCase para método de pago
+        'debitoTarjeta',    // Mantener camelCase para método de pago
         'estado',
         'empresa',
         'presupuesto' => function($query) {
@@ -506,7 +506,7 @@ public function descargarPdf($id)
         }
     ])->findOrFail($id);
 
-    // Determinar la compañía
+    // Determinar la compañía - EXACTAMENTE como funcionaba antes
     $compania = [
         'id' => 1,
         'nombre' => 'LOCALSAT',
@@ -545,7 +545,7 @@ public function descargarPdf($id)
     ])->render();
 
     try {
-        // Generar PDF con Browsershot
+        // Generar PDF con Browsershot - CONFIGURACIÓN SIMPLE como funcionaba
         $pdf = Browsershot::html($html)
             ->setOption('args', ['--no-sandbox', '--disable-setuid-sandbox'])
             ->setOption('disable-gpu', true)
@@ -556,7 +556,7 @@ public function descargarPdf($id)
 
         return response($pdf)
             ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'attachment; filename="contrato-' . $contrato->numero_contrato . '.pdf"');
+            ->header('Content-Disposition', 'attachment; filename="contrato-' . str_pad($contrato->id, 8, '0', STR_PAD_LEFT) . '.pdf"');
 
     } catch (\Exception $e) {
         \Log::error('Error generando PDF:', [
