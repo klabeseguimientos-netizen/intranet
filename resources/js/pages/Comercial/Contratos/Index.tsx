@@ -4,14 +4,14 @@ import { Link, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import Pagination from '@/components/ui/Pagination';
 import { ContratoFilterBar } from '@/components/contratos/ContratoFilterBar';
-import { FileText, Calendar, User, Building, Truck, Eye, Download, Edit } from 'lucide-react';
+import { FileText, Calendar, User, Building, Truck, Eye, Download, Edit, ChevronDown, ChevronUp, Filter } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Amount } from '@/components/ui/Amount';
 import { formatDate } from '@/utils/formatters';
 
 interface Contrato {
     id: number;
-    numero_contrato: string; // Esto viene del accessor del modelo
+    numero_contrato: string;
     cliente_nombre_completo: string;
     empresa_nombre_fantasia: string;
     presupuesto_cantidad_vehiculos: number;
@@ -71,6 +71,8 @@ export default function ContratosIndex({
     estados = []
 }: Props) {
     const usuarioEsComercial = usuario.rol_id === 5;
+    const [showMobileFilters, setShowMobileFilters] = useState(false);
+    const [expandedMobileCard, setExpandedMobileCard] = useState<number | null>(null);
 
     const [filters, setFilters] = useState(() => {
         const initialFilters: any = {
@@ -166,106 +168,130 @@ export default function ContratosIndex({
         return (contrato.presupuesto_total_inversion || 0) + (contrato.presupuesto_total_mensual || 0);
     };
 
+    const toggleMobileCard = (id: number) => {
+        setExpandedMobileCard(expandedMobileCard === id ? null : id);
+    };
+
     return (
         <AppLayout title="Contratos">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-                <div className="mb-4">
-                    <h1 className="text-3xl font-bold text-gray-900">
-                        Contratos
-                    </h1>
-                    <p className="mt-1 text-gray-600 text-base">
-                        Gestión y seguimiento de contratos
-                    </p>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
+                {/* Header */}
+                <div className="mb-4 sm:mb-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+                                Contratos
+                            </h1>
+                            <p className="mt-1 text-sm sm:text-base text-gray-600">
+                                Gestión y seguimiento de contratos
+                            </p>
+                        </div>
+                        
+                        {/* Mobile filter toggle */}
+                        <button
+                            type="button"
+                            onClick={() => setShowMobileFilters(!showMobileFilters)}
+                            className="sm:hidden inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                            <Filter className="h-4 w-4 mr-2" />
+                            {showMobileFilters ? 'Ocultar filtros' : 'Mostrar filtros'}
+                        </button>
+                    </div>
                 </div>
                 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                    <div className="p-4 bg-gray-50 rounded border">
-                        <h3 className="font-medium text-gray-700 mb-2">Total</h3>
-                        <p className="text-2xl font-bold text-gray-900">{estadisticas.total}</p>
+                {/* Stats Cards - Responsive */}
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total</h3>
+                        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">{estadisticas.total}</p>
                     </div>
-                    <div className="p-4 bg-green-50 rounded border border-green-200">
-                        <h3 className="font-medium text-gray-700 mb-2">Activos</h3>
-                        <p className="text-2xl font-bold text-green-600">{estadisticas.activos}</p>
+                    <div className="p-3 sm:p-4 bg-green-50 rounded-lg border border-green-200">
+                        <h3 className="text-xs sm:text-sm font-medium text-green-700 mb-1">Activos</h3>
+                        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-green-600">{estadisticas.activos}</p>
                     </div>
-                    <div className="p-4 bg-orange-50 rounded border border-orange-200">
-                        <h3 className="font-medium text-gray-700 mb-2">Pendientes</h3>
-                        <p className="text-2xl font-bold text-orange-600">{estadisticas.pendientes}</p>
+                    <div className="p-3 sm:p-4 bg-orange-50 rounded-lg border border-orange-200">
+                        <h3 className="text-xs sm:text-sm font-medium text-orange-700 mb-1">Pendientes</h3>
+                        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-orange-600">{estadisticas.pendientes}</p>
                     </div>
-                    <div className="p-4 bg-purple-50 rounded border border-purple-200">
-                        <h3 className="font-medium text-gray-700 mb-2">Instalados</h3>
-                        <p className="text-2xl font-bold text-purple-600">{estadisticas.instalados}</p>
+                    <div className="p-3 sm:p-4 bg-purple-50 rounded-lg border border-purple-200">
+                        <h3 className="text-xs sm:text-sm font-medium text-purple-700 mb-1">Instalados</h3>
+                        <p className="text-lg sm:text-xl lg:text-2xl font-bold text-purple-600">{estadisticas.instalados}</p>
                     </div>
                 </div>
 
-                {/* Buscador */}
-                <div className="mb-6">
-                    <form onSubmit={handleSearch} className="flex gap-2">
+                {/* Buscador - Responsive */}
+                <div className="mb-4 sm:mb-6">
+                    <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2">
                         <div className="relative flex-1">
                             <input
                                 type="text"
                                 value={filters.search}
                                 onChange={(e) => setFilters({...filters, search: e.target.value})}
                                 placeholder="Buscar por contrato, cliente, empresa..."
-                                className="w-full pl-4 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                             />
                         </div>
                         <button
                             type="submit"
-                            className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                            className="w-full sm:w-auto px-4 py-2 bg-orange-600 text-white text-sm sm:text-base rounded-lg hover:bg-orange-700 transition-colors"
                         >
                             Buscar
                         </button>
                     </form>
                 </div>
 
-                {/* Filtros */}
-                <ContratoFilterBar
-                    estadoValue={filters.estado_id || ''}
-                    onEstadoChange={(value) => handleFilterChange('estado_id', value)}
-                    prefijoValue={filters.prefijo_id || ''}
-                    onPrefijoChange={(value) => handleFilterChange('prefijo_id', value)}
-                    fechaInicio={filters.fecha_inicio || ''}
-                    fechaFin={filters.fecha_fin || ''}
-                    onFechaInicioChange={(value) => handleFilterChange('fecha_inicio', value)}
-                    onFechaFinChange={(value) => handleFilterChange('fecha_fin', value)}
-                    estados={estados}
-                    prefijosFiltro={prefijosFiltro}
-                    onClearFilters={clearFilters}
-                    hayFiltrosActivos={hayFiltrosActivos()}
-                    usuarioEsComercial={usuarioEsComercial}
-                    prefijoUsuario={prefijoUsuario}
-                />
+                {/* Filtros - Mobile conditional */}
+                {(showMobileFilters || !window.matchMedia('(max-width: 640px)').matches) && (
+                    <div className="mb-4 sm:mb-6">
+                        <ContratoFilterBar
+                            estadoValue={filters.estado_id || ''}
+                            onEstadoChange={(value) => handleFilterChange('estado_id', value)}
+                            prefijoValue={filters.prefijo_id || ''}
+                            onPrefijoChange={(value) => handleFilterChange('prefijo_id', value)}
+                            fechaInicio={filters.fecha_inicio || ''}
+                            fechaFin={filters.fecha_fin || ''}
+                            onFechaInicioChange={(value) => handleFilterChange('fecha_inicio', value)}
+                            onFechaFinChange={(value) => handleFilterChange('fecha_fin', value)}
+                            estados={estados}
+                            prefijosFiltro={prefijosFiltro}
+                            onClearFilters={clearFilters}
+                            hayFiltrosActivos={hayFiltrosActivos()}
+                            usuarioEsComercial={usuarioEsComercial}
+                            prefijoUsuario={prefijoUsuario}
+                        />
+                    </div>
+                )}
                 
                 {/* Listado de contratos */}
                 {contratos.data.length > 0 ? (
                     <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <div className="overflow-x-auto">
+                        {/* Vista Desktop - Tabla */}
+                        <div className="hidden md:block overflow-x-auto">
                             <table className="min-w-full divide-y divide-gray-200">
                                 <thead className="bg-gray-50">
                                     <tr>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Contrato
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Cliente
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Empresa
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Vehículos
+                                        <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            Veh.
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Fecha
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Total
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Estado
                                         </th>
-                                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             Acciones
                                         </th>
                                     </tr>
@@ -273,65 +299,157 @@ export default function ContratosIndex({
                                 <tbody className="bg-white divide-y divide-gray-200">
                                     {contratos.data.map((contrato) => (
                                         <tr key={contrato.id} className="hover:bg-gray-50">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm font-medium text-gray-900">
                                                 #{contrato.numero_contrato}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500">
                                                 {contrato.cliente_nombre_completo}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500">
                                                 {contrato.empresa_nombre_fantasia}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500">
                                                 {contrato.presupuesto_cantidad_vehiculos}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                            <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500">
                                                 {formatDate(contrato.fecha_emision)}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
+                                            <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-900 font-medium">
                                                 <Amount value={totalPrimerMes(contrato)} />
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
                                                 <StatusBadge 
                                                     status={getEstadoNombre(contrato.estado?.id)} 
                                                     color={getEstadoColor(contrato.estado?.id)}
                                                 />
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                <Link
-                                                    href={`/comercial/contratos/${contrato.id}`}
-                                                    className="text-blue-600 hover:text-blue-900 mr-3 inline-flex items-center gap-1"
-                                                    title="Ver detalle"
-                                                >
-                                                    <Eye className="h-4 w-4" />
-                                                    <span className="sr-only">Ver</span>
-                                                </Link>
-                                                <button
-                                                    onClick={() => handleVerPDF(contrato.id)}
-                                                    className="text-orange-600 hover:text-orange-900 mr-3 inline-flex items-center gap-1"
-                                                    title="Ver PDF"
-                                                >
-                                                    <FileText className="h-4 w-4" />
-                                                    <span className="sr-only">PDF</span>
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDescargarPDF(contrato.id)}
-                                                    className="text-green-600 hover:text-green-900 inline-flex items-center gap-1"
-                                                    title="Descargar PDF"
-                                                >
-                                                    <Download className="h-4 w-4" />
-                                                    <span className="sr-only">Descargar</span>
-                                                </button>
+                                            <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500">
+                                                <div className="flex items-center gap-2">
+                                                    <Link
+                                                        href={`/comercial/contratos/${contrato.id}`}
+                                                        className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
+                                                        title="Ver detalle"
+                                                    >
+                                                        <Eye className="h-4 w-4" />
+                                                    </Link>
+                                                    <button
+                                                        onClick={() => handleVerPDF(contrato.id)}
+                                                        className="text-orange-600 hover:text-orange-900 p-1 rounded hover:bg-orange-50 transition-colors"
+                                                        title="Ver PDF"
+                                                    >
+                                                        <FileText className="h-4 w-4" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDescargarPDF(contrato.id)}
+                                                        className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50 transition-colors"
+                                                        title="Descargar PDF"
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Vista Mobile - Tarjetas */}
+                        <div className="md:hidden divide-y divide-gray-200">
+                            {contratos.data.map((contrato) => (
+                                <div key={contrato.id} className="p-4 hover:bg-gray-50">
+                                    {/* Cabecera de la tarjeta - siempre visible */}
+                                    <div className="flex items-start justify-between mb-2">
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-sm font-medium text-gray-900">
+                                                    #{contrato.numero_contrato}
+                                                </span>
+                                                <StatusBadge 
+                                                    status={getEstadoNombre(contrato.estado?.id)} 
+                                                    color={getEstadoColor(contrato.estado?.id)}
+                                                    size="sm"
+                                                />
+                                            </div>
+                                            <p className="text-sm text-gray-600 font-medium">
+                                                {contrato.cliente_nombre_completo}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                {contrato.empresa_nombre_fantasia}
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => toggleMobileCard(contrato.id)}
+                                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                        >
+                                            {expandedMobileCard === contrato.id ? (
+                                                <ChevronUp className="h-5 w-5 text-gray-500" />
+                                            ) : (
+                                                <ChevronDown className="h-5 w-5 text-gray-500" />
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {/* Información resumida siempre visible */}
+                                    <div className="flex items-center justify-between text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <Truck className="h-4 w-4 text-gray-400" />
+                                            <span className="text-gray-600">{contrato.presupuesto_cantidad_vehiculos} veh.</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Calendar className="h-4 w-4 text-gray-400" />
+                                            <span className="text-gray-600">{formatDate(contrato.fecha_emision)}</span>
+                                        </div>
+                                        <Amount value={totalPrimerMes(contrato)} className="font-bold text-orange-600" />
+                                    </div>
+
+                                    {/* Detalles expandibles */}
+                                    {expandedMobileCard === contrato.id && (
+                                        <div className="mt-4 pt-4 border-t border-gray-100">
+                                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                                <div>
+                                                    <p className="text-xs text-gray-500 mb-1">Inversión inicial</p>
+                                                    <Amount value={contrato.presupuesto_total_inversion} className="text-sm font-medium text-blue-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs text-gray-500 mb-1">Costo mensual</p>
+                                                    <Amount value={contrato.presupuesto_total_mensual} className="text-sm font-medium text-green-600" />
+                                                </div>
+                                            </div>
+
+                                            {/* Acciones móvil */}
+                                            <div className="flex items-center gap-2">
+                                                <Link
+                                                    href={`/comercial/contratos/${contrato.id}`}
+                                                    className="flex-1 px-3 py-2 bg-blue-50 text-blue-700 text-sm rounded-lg hover:bg-blue-100 transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <Eye className="h-4 w-4" />
+                                                    Ver detalle
+                                                </Link>
+                                                <button
+                                                    onClick={() => handleVerPDF(contrato.id)}
+                                                    className="flex-1 px-3 py-2 bg-orange-50 text-orange-700 text-sm rounded-lg hover:bg-orange-100 transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <FileText className="h-4 w-4" />
+                                                    Ver PDF
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDescargarPDF(contrato.id)}
+                                                    className="flex-1 px-3 py-2 bg-green-50 text-green-700 text-sm rounded-lg hover:bg-green-100 transition-colors flex items-center justify-center gap-2"
+                                                >
+                                                    <Download className="h-4 w-4" />
+                                                    Descargar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
                         
                         {/* Paginación */}
                         {contratos.last_page > 1 && (
-                            <div className="px-6 py-4 border-t border-gray-200">
+                            <div className="px-4 sm:px-6 py-4 border-t border-gray-200">
                                 <Pagination
                                     currentPage={contratos.current_page}
                                     lastPage={contratos.last_page}
@@ -343,10 +461,10 @@ export default function ContratosIndex({
                         )}
                     </div>
                 ) : (
-                    <div className="bg-white rounded-lg border border-gray-200 p-8 text-center text-gray-500">
-                        <FileText className="h-12 w-12 mx-auto mb-3 text-gray-400" />
-                        <p className="text-lg font-medium">No hay contratos</p>
-                        <p className="text-sm">Los contratos generados aparecerán aquí</p>
+                    <div className="bg-white rounded-lg border border-gray-200 p-6 sm:p-8 text-center text-gray-500">
+                        <FileText className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 text-gray-400" />
+                        <p className="text-base sm:text-lg font-medium">No hay contratos</p>
+                        <p className="text-xs sm:text-sm">Los contratos generados aparecerán aquí</p>
                     </div>
                 )}
             </div>

@@ -12,18 +12,14 @@ export default defineConfig({
             ],
             refresh: true,
         }),
-        react({
-            babel: {
-                plugins: ['babel-plugin-react-compiler'],
-            },
-        }),
+        react(), // Sin la configuración experimental de babel
         tailwindcss(),
     ],
     resolve: {
-        extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'], // Agrega extensiones TypeScript
+        extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
     },
     server: {
-        host: '0.0.0.0', // Acepta todas las conexiones
+        host: '0.0.0.0',
         port: 5173,
         hmr: {
             host: 'localhost',
