@@ -229,7 +229,7 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
         // Usuarios
         Route::prefix('usuarios')->group(function () {
             Route::get('/', [UsuariosSistemaController::class, 'index'])->name('config.usuarios');
-            Route::get('/roles', [RolesPermisosController::class, 'index'])->name('config.usuarios.roles');
+            //Route::get('/roles', [RolesPermisosController::class, 'index'])->name('config.usuarios.roles');
         });
     });
     
@@ -237,7 +237,7 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
     Route::prefix('rrhh')->group(function () {
         // Equipos
         Route::prefix('equipos')->group(function () {
-            Route::get('/comercial', [EquipoComercialController::class, 'index'])->name('rrhh.equipos.comercial');
+           // Route::get('/comercial', [EquipoComercialController::class, 'index'])->name('rrhh.equipos.comercial');
             Route::get('/tecnico', [EquipoTecnicoController::class, 'index'])->name('rrhh.equipos.tecnico');
             
             // Técnicos CRUD
