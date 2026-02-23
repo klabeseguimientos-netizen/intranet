@@ -35,6 +35,10 @@ class AppServiceProvider extends ServiceProvider
         if (app()->environment('production')) {
             URL::forceScheme('https');
         }
+        URL::macro('rrhhRoute', function ($name, $parameters = []) {
+        $url = route($name, $parameters);
+        return str_replace('/rrhh/', '/RRHH/', $url);
+    });
     }
 
     protected function configureDefaults(): void
