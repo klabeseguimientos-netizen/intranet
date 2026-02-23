@@ -238,23 +238,23 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
         // Equipos
         Route::prefix('equipos')->group(function () {
            // Route::get('/comercial', [EquipoComercialController::class, 'index'])->name('rrhh.equipos.comercial');
-            Route::get('/tecnico', [EquipoTecnicoController::class, 'index'])->name('RRHH.equipos.tecnico');
+            Route::get('/tecnico', [EquipoTecnicoController::class, 'index'])->name('rrhh.equipos.tecnico');
             
             // Técnicos CRUD
             Route::prefix('tecnicos')->group(function () {
-                Route::get('/create', [TecnicoController::class, 'create'])->name('RRHH.tecnicos.create');
-                Route::post('/', [TecnicoController::class, 'store'])->name('RRHH.tecnicos.store');
-                Route::get('/{tecnico}/edit', [TecnicoController::class, 'edit'])->name('RRHH.tecnicos.edit');
-                Route::put('/{tecnico}', [TecnicoController::class, 'update'])->name('RRHH.tecnicos.update');
-                Route::delete('/{tecnico}', [TecnicoController::class, 'destroy'])->name('RRHH.tecnicos.destroy');
+                Route::get('/create', [TecnicoController::class, 'create'])->name('rrhh.tecnicos.create');
+                Route::post('/', [TecnicoController::class, 'store'])->name('rrhh.tecnicos.store');
+                Route::get('/{tecnico}/edit', [TecnicoController::class, 'edit'])->name('rrhh.tecnicos.edit');
+                Route::put('/{tecnico}', [TecnicoController::class, 'update'])->name('rrhh.tecnicos.update');
+                Route::delete('/{tecnico}', [TecnicoController::class, 'destroy'])->name('rrhh.tecnicos.destroy');
             });
         });
         
         // Personal
         Route::prefix('personal')->group(function () {
-            Route::get('/datos', [DatosPersonalesController::class, 'index'])->name('RRHH.personal.datos-personales');
-            Route::get('/cumpleanos', [CumpleanosController::class, 'index'])->name('RRHH.personal.cumpleanos');
-            Route::get('/licencias', [LicenciasController::class, 'index'])->name('RRHH.personal.licencias');
+            Route::get('/datos', [DatosPersonalesController::class, 'index'])->name('rrhh.personal.datos-personales');
+            Route::get('/cumpleanos', [CumpleanosController::class, 'index'])->name('rrhh.personal.cumpleanos');
+            Route::get('/licencias', [LicenciasController::class, 'index'])->name('rrhh.personal.licencias');
         });
     });
     
