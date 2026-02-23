@@ -105,7 +105,7 @@ export default function MediosPago() {
                                             Editar
                                         </button>
                                         <button className="text-gray-600 hover:text-gray-900 text-sm">
-                                            Configurar
+                                            Eliminar
                                         </button>
                                     </td>
                                 </tr>
@@ -144,7 +144,7 @@ export default function MediosPago() {
                                     Editar
                                 </button>
                                 <button className="flex-1 px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded hover:bg-gray-50 transition-colors">
-                                    Configurar
+                                    Eliminar
                                 </button>
                             </div>
                         </div>
