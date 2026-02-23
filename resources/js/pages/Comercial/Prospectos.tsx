@@ -190,12 +190,6 @@ export default function Prospectos({
           <h2 className="text-lg font-semibold text-gray-900">
             Pipeline de Prospectos
           </h2>
-          <Link 
-            href="/comercial/leads/create" 
-            className="px-4 py-2 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors w-full md:w-auto text-center"
-          >
-            + Nuevo Prospecto
-          </Link>
         </div>
         
         <PipelineStatistics estadisticas={estadisticas} />
