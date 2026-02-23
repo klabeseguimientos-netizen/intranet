@@ -1,7 +1,7 @@
 <?php
 // app/Http/Controllers/rrhh/Personal/CumpleanosController.php
 
-namespace App\Http\Controllers\rrhh\Personal;
+namespace App\Http\Controllers\RRHH\Personal;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
