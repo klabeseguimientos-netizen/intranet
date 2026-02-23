@@ -91,7 +91,7 @@ export default function TecnicoForm({ tecnico, personalDisponible = [], modo, er
         
         if (modo === 'crear') {
             // CORREGIDO: Enviar con un solo objeto que incluye datos y opciones
-            post('/rrhh/tecnicos', {
+            post('/rrhh/equipos/tecnicos', {
                 ...datosEnviar,
                 preserveScroll: true,
                 onSuccess: () => {
@@ -103,7 +103,7 @@ export default function TecnicoForm({ tecnico, personalDisponible = [], modo, er
             });
         } else {
             // CORREGIDO: Enviar con un solo objeto que incluye datos y opciones
-            put(`/rrhh/tecnicos/${tecnico?.id}`, {
+            put(`/rrhh/equipos/tecnicos/${tecnico?.id}`, {
                 ...datosEnviar,
                 preserveScroll: true,
                 onSuccess: () => {

@@ -169,13 +169,13 @@ export default function EquipoTecnico({
 
     // Funciones del menú
     const handleEditar = (tecnico: Tecnico) => {
-        router.get(`/rrhh/tecnicos/${tecnico.id}/edit`);
+        router.get(`/rrhh/equipos/tecnicos/${tecnico.id}/edit`);
         setMenuAbierto(null);
     };
 
     const handleEliminar = (tecnico: Tecnico) => {
         if (confirm(`¿Estás seguro de eliminar a ${tecnico.nombre_completo}?`)) {
-            router.delete(`/rrhh/tecnicos/${tecnico.id}`, {
+            router.delete(`/rrhh/equipos/tecnicos/${tecnico.id}`, {
                 preserveScroll: true,
                 onSuccess: () => {
                     // Mensaje de éxito viene de flash
@@ -282,7 +282,7 @@ export default function EquipoTecnico({
                         {/* Solo mostrar botón "Nuevo Técnico" para admins */}
                         {esAdmin && (
                             <button 
-                                onClick={() => router.get('/rrhh/tecnicos/create')}
+                                onClick={() => router.get('/rrhh/equipos/tecnicos/create')}
                                 className="px-4 py-2 bg-sat text-white text-sm rounded hover:bg-sat-600 transition-colors flex items-center gap-2"
                             >
                                 <User size={16} />

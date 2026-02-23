@@ -92,25 +92,7 @@ export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
 
                         <div className="flex-1 max-w-2xl mx-4">
                             <form onSubmit={handleSearch} className="flex gap-2 items-center">
-                                <div className="relative flex-1">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-                                    <input
-                                        type="search"
-                                        placeholder="Buscar empresas..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-10 w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-sat focus:border-sat"
-                                    />
-                                </div>
-                                
-                                <button
-                                    type="button"
-                                    onClick={() => console.log('Cambiar vista')}
-                                    title="Cambiar vista"
-                                    className="p-2 border border-gray-300 rounded-md hover:border-sat hover:text-sat transition-colors"
-                                >
-                                    <RefreshCw size={20} />
-                                </button>
+                    
                                 
                                 <button 
                                     type="button"
