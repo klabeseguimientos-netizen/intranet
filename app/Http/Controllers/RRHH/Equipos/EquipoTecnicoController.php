@@ -1,7 +1,7 @@
 <?php
-// app/Http/Controllers/RRHH/Equipos/EquipoTecnicoController.php
+// app/Http/Controllers/rrhh/Equipos/EquipoTecnicoController.php
 
-namespace App\Http\Controllers\RRHH\Equipos;
+namespace App\Http\Controllers\rrhh\Equipos;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
@@ -55,7 +55,7 @@ class EquipoTecnicoController extends Controller
             // Obtener lista de provincias únicas para filtros
             $provincias = $tecnicos->pluck('provincia')->unique()->filter()->sort()->values();
 
-            return Inertia::render('RRHH/Equipos/EquipoTecnico', [
+            return Inertia::render('rrhh/Equipos/EquipoTecnico', [
                 'tecnicos' => $tecnicos,
                 'tecnicosPorProvincia' => $tecnicosPorProvincia,
                 'provincias' => $provincias,
@@ -67,7 +67,7 @@ class EquipoTecnicoController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error en EquipoTecnicoController: ' . $e->getMessage());
             
-            return Inertia::render('RRHH/Equipos/EquipoTecnico', [
+            return Inertia::render('rrhh/Equipos/EquipoTecnico', [
                 'tecnicos' => [],
                 'tecnicosPorProvincia' => [],
                 'provincias' => [],
