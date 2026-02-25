@@ -613,9 +613,25 @@ console.log('Campos de tarjeta:', {
                                             <td style={styles.serviceTableTd}>{contrato.presupuesto_cantidad_vehiculos}</td>
                                             <td style={styles.serviceTableTd}>{formatMoney(contrato.presupuesto.valor_tasa)}</td>
                                             <td style={styles.serviceTableTd}>
-                                                {contrato.presupuesto.promocion?.productos?.some((p: any) => p.producto_servicio_id === contrato.presupuesto.tasa.id) 
-                                                    ? contrato.presupuesto.promocion.nombre 
-                                                    : contrato.presupuesto.tasa_bonificacion > 0 ? `${contrato.presupuesto.tasa_bonificacion}%` : '-'}
+                                                {(() => {
+                                                    const productoPromo = contrato.presupuesto.promocion?.productos?.find(
+                                                        (p: any) => p.producto_servicio_id === contrato.presupuesto.tasa.id
+                                                    );
+                                                    
+                                                    if (productoPromo) {
+                                                        if (productoPromo.tipo_promocion === '2x1') return '2x1';
+                                                        if (productoPromo.tipo_promocion === '3x2') return '3x2';
+                                                        if (productoPromo.tipo_promocion === 'porcentaje') {
+                                                            return `${productoPromo.bonificacion || contrato.presupuesto.tasa_bonificacion}%`;
+                                                        }
+                                                    }
+                                                    
+                                                    if (contrato.presupuesto.tasa_bonificacion > 0) {
+                                                        return `${contrato.presupuesto.tasa_bonificacion}%`;
+                                                    }
+                                                    
+                                                    return '-';
+                                                })()}
                                             </td>
                                             <td style={{ ...styles.serviceTableTd, ...styles.number }}>{formatMoney(contrato.presupuesto.subtotal_tasa)}</td>
                                         </tr>
@@ -625,8 +641,7 @@ console.log('Campos de tarjeta:', {
                                 {/* Accesorios */}
                                 {contrato.presupuesto?.agregados?.filter((a: any) => {
                                     const tipoId = a.producto_servicio?.tipo?.id;
-                                    const tipoNombre = a.producto_servicio?.tipo?.nombre_tipo_abono || '';
-                                    return tipoId === 5 || tipoNombre === 'ACCESORIOS';
+                                    return tipoId === 5;
                                 }).length > 0 && (
                                     <>
                                         <tr>
@@ -635,38 +650,66 @@ console.log('Campos de tarjeta:', {
                                             </td>
                                         </tr>
                                         {contrato.presupuesto.agregados
-                                            .filter((a: any) => {
-                                                const tipoId = a.producto_servicio?.tipo?.id;
-                                                const tipoNombre = a.producto_servicio?.tipo?.nombre_tipo_abono || '';
-                                                return tipoId === 5 || tipoNombre === 'ACCESORIOS';
-                                            })
-                                            .map((item: any, index: number) => (
-                                                <tr key={`acc-${index}`}>
-                                                    <td style={styles.serviceTableTd}>{item.producto_servicio?.nombre}</td>
-                                                    <td style={styles.serviceTableTd}>{item.cantidad}</td>
-                                                    <td style={styles.serviceTableTd}>{formatMoney(item.valor)}</td>
-                                                    <td style={styles.serviceTableTd}>
-                                                        {contrato.presupuesto.promocion?.productos?.some((p: any) => p.producto_servicio_id === item.prd_servicio_id)
-                                                            ? contrato.presupuesto.promocion.nombre
-                                                            : item.bonificacion > 0 ? `${item.bonificacion}%` : '-'}
-                                                    </td>
-                                                    <td style={{ ...styles.serviceTableTd, ...styles.number }}>{formatMoney(item.subtotal)}</td>
-                                                </tr>
-                                            ))}
+                                            .filter((a: any) => a.producto_servicio?.tipo?.id === 5)
+                                            .map((item: any, index: number) => {
+                                                const productoPromo = contrato.presupuesto.promocion?.productos?.find(
+                                                    (p: any) => p.producto_servicio_id === item.prd_servicio_id
+                                                );
+                                                
+                                                let descuentoTexto = '-';
+                                                
+                                                if (productoPromo) {
+                                                    if (productoPromo.tipo_promocion === '2x1') descuentoTexto = '2x1';
+                                                    else if (productoPromo.tipo_promocion === '3x2') descuentoTexto = '3x2';
+                                                    else if (productoPromo.tipo_promocion === 'porcentaje') {
+                                                        descuentoTexto = `${productoPromo.bonificacion || item.bonificacion}%`;
+                                                    }
+                                                } else if (item.bonificacion > 0) {
+                                                    descuentoTexto = `${item.bonificacion}%`;
+                                                }
+                                                
+                                                return (
+                                                    <tr key={`acc-${index}`}>
+                                                        <td style={styles.serviceTableTd}>{item.producto_servicio?.nombre}</td>
+                                                        <td style={styles.serviceTableTd}>{item.cantidad}</td>
+                                                        <td style={styles.serviceTableTd}>{formatMoney(item.valor)}</td>
+                                                        <td style={styles.serviceTableTd}>{descuentoTexto}</td>
+                                                        <td style={{ ...styles.serviceTableTd, ...styles.number }}>{formatMoney(item.subtotal)}</td>
+                                                    </tr>
+                                                );
+                                            })}
                                     </>
                                 )}
-                                
-                                <tr style={styles.totalRow}>
-                                    <td colSpan={4} style={{ textAlign: 'right', padding: '3px 4px' }}>TOTAL INVERSIÓN:</td>
-                                    <td style={{ ...styles.number, padding: '3px 4px' }}>{formatMoney(contrato.presupuesto_total_inversion)}</td>
-                                </tr>
                             </tbody>
                         </table>
+                        
+                        {/* Inversión Inicial (Tasa + Accesorios) */}
+                        {(() => {
+                            let totalInversion = 0;
+                            if (contrato.presupuesto) {
+                                // Sumar tasa
+                                totalInversion += Number(contrato.presupuesto.subtotal_tasa) || 0;
+                                
+                                // Sumar accesorios
+                                if (contrato.presupuesto.agregados && contrato.presupuesto.agregados.length > 0) {
+                                    contrato.presupuesto.agregados.forEach((item: any) => {
+                                        if (item.producto_servicio?.tipo?.id === 5) {
+                                            totalInversion += Number(item.subtotal) || 0;
+                                        }
+                                    });
+                                }
+                            }
+                            return (
+                                <div style={{ textAlign: 'right', marginTop: '5px', padding: '3px 4px', background: '#fff3e0', fontWeight: 'bold', borderTop: '1px solid rgb(247, 98, 0)', color: 'rgb(60, 60, 62)', fontSize: '9px' }}>
+                                    Inversión Inicial: <span style={{ fontFamily: "'Courier New', monospace" }}>{formatMoney(totalInversion)}</span>
+                                </div>
+                            );
+                        })()}
                     </div>
                     
-                    {/* Abonos Mensuales */}
+                    {/* Costo Mensual */}
                     <div>
-                        <div style={styles.tableHeader}>ABONOS MENSUALES</div>
+                        <div style={styles.tableHeader}>COSTO MENSUAL</div>
                         <table style={styles.serviceTable}>
                             <thead>
                                 <tr>
@@ -683,7 +726,7 @@ console.log('Campos de tarjeta:', {
                                     <>
                                         <tr>
                                             <td colSpan={5} style={{ background: '#f2f2f2', fontWeight: 'bold', color: 'rgb(60,60,62)', fontSize: '9px', padding: '3px 4px' }}>
-                                                ABONOS MENSUALES
+                                                ABONO BASE
                                             </td>
                                         </tr>
                                         <tr>
@@ -691,9 +734,25 @@ console.log('Campos de tarjeta:', {
                                             <td style={styles.serviceTableTd}>{contrato.presupuesto_cantidad_vehiculos}</td>
                                             <td style={styles.serviceTableTd}>{formatMoney(contrato.presupuesto.valor_abono)}</td>
                                             <td style={styles.serviceTableTd}>
-                                                {contrato.presupuesto.promocion?.productos?.some((p: any) => p.producto_servicio_id === contrato.presupuesto.abono.id)
-                                                    ? contrato.presupuesto.promocion.nombre
-                                                    : contrato.presupuesto.abono_bonificacion > 0 ? `${contrato.presupuesto.abono_bonificacion}%` : '-'}
+                                                {(() => {
+                                                    const productoPromo = contrato.presupuesto.promocion?.productos?.find(
+                                                        (p: any) => p.producto_servicio_id === contrato.presupuesto.abono.id
+                                                    );
+                                                    
+                                                    if (productoPromo) {
+                                                        if (productoPromo.tipo_promocion === '2x1') return '2x1';
+                                                        if (productoPromo.tipo_promocion === '3x2') return '3x2';
+                                                        if (productoPromo.tipo_promocion === 'porcentaje') {
+                                                            return `${productoPromo.bonificacion || contrato.presupuesto.abono_bonificacion}%`;
+                                                        }
+                                                    }
+                                                    
+                                                    if (contrato.presupuesto.abono_bonificacion > 0) {
+                                                        return `${contrato.presupuesto.abono_bonificacion}%`;
+                                                    }
+                                                    
+                                                    return '-';
+                                                })()}
                                             </td>
                                             <td style={{ ...styles.serviceTableTd, ...styles.number }}>{formatMoney(contrato.presupuesto.subtotal_abono)}</td>
                                         </tr>
@@ -703,8 +762,7 @@ console.log('Campos de tarjeta:', {
                                 {/* Servicios */}
                                 {contrato.presupuesto?.agregados?.filter((a: any) => {
                                     const tipoId = a.producto_servicio?.tipo?.id;
-                                    const tipoNombre = a.producto_servicio?.tipo?.nombre_tipo_abono || '';
-                                    return tipoId === 3 || tipoNombre === 'SERVICIO';
+                                    return tipoId === 3;
                                 }).length > 0 && (
                                     <>
                                         <tr>
@@ -713,35 +771,97 @@ console.log('Campos de tarjeta:', {
                                             </td>
                                         </tr>
                                         {contrato.presupuesto.agregados
-                                            .filter((a: any) => {
-                                                const tipoId = a.producto_servicio?.tipo?.id;
-                                                const tipoNombre = a.producto_servicio?.tipo?.nombre_tipo_abono || '';
-                                                return tipoId === 3 || tipoNombre === 'SERVICIO';
-                                            })
-                                            .map((item: any, index: number) => (
-                                                <tr key={`serv-${index}`}>
-                                                    <td style={styles.serviceTableTd}>{item.producto_servicio?.nombre}</td>
-                                                    <td style={styles.serviceTableTd}>{item.cantidad}</td>
-                                                    <td style={styles.serviceTableTd}>{formatMoney(item.valor)}</td>
-                                                    <td style={styles.serviceTableTd}>
-                                                        {contrato.presupuesto.promocion?.productos?.some((p: any) => p.producto_servicio_id === item.prd_servicio_id)
-                                                            ? contrato.presupuesto.promocion.nombre
-                                                            : item.bonificacion > 0 ? `${item.bonificacion}%` : '-'}
-                                                    </td>
-                                                    <td style={{ ...styles.serviceTableTd, ...styles.number }}>{formatMoney(item.subtotal)}</td>
-                                                </tr>
-                                            ))}
+                                            .filter((a: any) => a.producto_servicio?.tipo?.id === 3)
+                                            .map((item: any, index: number) => {
+                                                const productoPromo = contrato.presupuesto.promocion?.productos?.find(
+                                                    (p: any) => p.producto_servicio_id === item.prd_servicio_id
+                                                );
+                                                
+                                                let descuentoTexto = '-';
+                                                
+                                                if (productoPromo) {
+                                                    if (productoPromo.tipo_promocion === '2x1') descuentoTexto = '2x1';
+                                                    else if (productoPromo.tipo_promocion === '3x2') descuentoTexto = '3x2';
+                                                    else if (productoPromo.tipo_promocion === 'porcentaje') {
+                                                        descuentoTexto = `${productoPromo.bonificacion || item.bonificacion}%`;
+                                                    }
+                                                } else if (item.bonificacion > 0) {
+                                                    descuentoTexto = `${item.bonificacion}%`;
+                                                }
+                                                
+                                                return (
+                                                    <tr key={`serv-${index}`}>
+                                                        <td style={styles.serviceTableTd}>{item.producto_servicio?.nombre}</td>
+                                                        <td style={styles.serviceTableTd}>{item.cantidad}</td>
+                                                        <td style={styles.serviceTableTd}>{formatMoney(item.valor)}</td>
+                                                        <td style={styles.serviceTableTd}>{descuentoTexto}</td>
+                                                        <td style={{ ...styles.serviceTableTd, ...styles.number }}>{formatMoney(item.subtotal)}</td>
+                                                    </tr>
+                                                );
+                                            })}
                                     </>
                                 )}
-                                
-                                <tr style={styles.totalRow}>
-                                    <td colSpan={4} style={{ textAlign: 'right', padding: '3px 4px' }}>TOTAL MENSUAL:</td>
-                                    <td style={{ ...styles.number, padding: '3px 4px', color: 'rgb(247,98,0)' }}>{formatMoney(contrato.presupuesto_total_mensual)}</td>
-                                </tr>
                             </tbody>
                         </table>
+                        
+                        {/* Costo Mensual (Abono + Servicios) */}
+                        {(() => {
+                            let costoMensual = 0;
+                            if (contrato.presupuesto) {
+                                // Sumar abono
+                                costoMensual += Number(contrato.presupuesto.subtotal_abono) || 0;
+                                
+                                // Sumar servicios
+                                if (contrato.presupuesto.agregados && contrato.presupuesto.agregados.length > 0) {
+                                    contrato.presupuesto.agregados.forEach((item: any) => {
+                                        if (item.producto_servicio?.tipo?.id === 3) {
+                                            costoMensual += Number(item.subtotal) || 0;
+                                        }
+                                    });
+                                }
+                            }
+                            return (
+                                <div style={{ textAlign: 'right', marginTop: '5px', padding: '3px 4px', background: '#fff3e0', fontWeight: 'bold', borderTop: '1px solid rgb(247, 98, 0)', color: 'rgb(60, 60, 62)', fontSize: '9px' }}>
+                                    Costo Mensual: <span style={{ fontFamily: "'Courier New', monospace" }}>{formatMoney(costoMensual)}</span>
+                                </div>
+                            );
+                        })()}
                     </div>
                 </div>
+                
+                {/* TOTAL PRIMER MES */}
+                {(() => {
+                    let totalInversion = 0;
+                    let costoMensual = 0;
+                    
+                    if (contrato.presupuesto) {
+                        // Inversión Inicial
+                        totalInversion += Number(contrato.presupuesto.subtotal_tasa) || 0;
+                        
+                        // Costo Mensual
+                        costoMensual += Number(contrato.presupuesto.subtotal_abono) || 0;
+                        
+                        // Agregados
+                        if (contrato.presupuesto.agregados && contrato.presupuesto.agregados.length > 0) {
+                            contrato.presupuesto.agregados.forEach((item: any) => {
+                                const tipoId = item.producto_servicio?.tipo?.id;
+                                if (tipoId === 5) {
+                                    totalInversion += Number(item.subtotal) || 0;
+                                } else if (tipoId === 3) {
+                                    costoMensual += Number(item.subtotal) || 0;
+                                }
+                            });
+                        }
+                    }
+                    
+                    const totalPrimerMes = totalInversion + costoMensual;
+                    
+                    return (
+                        <div style={{ textAlign: 'right', marginTop: '10px', padding: '5px 8px', background: '#e6f0fa', fontWeight: 'bold', border: '1px solid rgb(60, 60, 62)', borderRadius: '3px', color: 'rgb(60, 60, 62)', fontSize: '11px' }}>
+                            TOTAL PRIMER MES: <span style={{ fontFamily: "'Courier New', monospace", fontSize: '12px' }}>{formatMoney(totalPrimerMes)}</span>
+                        </div>
+                    );
+                })()}
             </div>
 
             {/* Método de Pago - Dinámico según el tipo */}

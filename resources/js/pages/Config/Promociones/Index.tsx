@@ -362,7 +362,6 @@ export default function PromocionesIndex({ promociones, estadisticas, productos,
                                         lastPage={promociones.last_page}
                                         total={promociones.total}
                                         perPage={promociones.per_page}
-                                        onPageChange={handlePageChange}
                                     />
                                 </div>
                             )}

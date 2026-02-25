@@ -17,7 +17,7 @@ class LeadStatisticsService
     
     private function getEstadosExcluirIds(): array
     {
-        return EstadoLead::whereIn('tipo', ['recontacto', 'final_negativo'])
+        return EstadoLead::whereIn('tipo', ['recontacto', 'final_negativo','final_positivo'])
             ->where('activo', 1)
             ->pluck('id')
             ->toArray();
@@ -30,9 +30,10 @@ class LeadStatisticsService
                 DB::raw('COUNT(*) as total'),
                 DB::raw('SUM(CASE WHEN estado_lead_id = 1 THEN 1 ELSE 0 END) as nuevo'),
                 DB::raw('SUM(CASE WHEN estado_lead_id = 2 THEN 1 ELSE 0 END) as contactado'),
-                DB::raw('SUM(CASE WHEN estado_lead_id = 3 THEN 1 ELSE 0 END) as calificado'),
+                DB::raw('SUM(CASE WHEN estado_lead_id = 3 THEN 1 ELSE 0 END) as seguimiento'),
                 DB::raw('SUM(CASE WHEN estado_lead_id = 4 THEN 1 ELSE 0 END) as propuesta'),
-                DB::raw('SUM(CASE WHEN estado_lead_id = 5 THEN 1 ELSE 0 END) as negociacion')
+                DB::raw('SUM(CASE WHEN estado_lead_id = 5 THEN 1 ELSE 0 END) as negociacion'),
+                DB::raw('SUM(CASE WHEN estado_lead_id = 12 THEN 1 ELSE 0 END) as pausado')
             )
             ->where('es_cliente', 0)
             ->whereNotIn('estado_lead_id', $this->estadosExcluirIds)
@@ -54,9 +55,10 @@ class LeadStatisticsService
             'total' => $estadisticasRow->total ?? 0,
             'nuevo' => $estadisticasRow->nuevo ?? 0,
             'contactado' => $estadisticasRow->contactado ?? 0,
-            'calificado' => $estadisticasRow->calificado ?? 0,
+            'seguimiento' => $estadisticasRow->seguimiento ?? 0,
             'propuesta' => $estadisticasRow->propuesta ?? 0,
             'negociacion' => $estadisticasRow->negociacion ?? 0,
+            'pausado' => $estadisticasRow->pausado ?? 0,
         ];
     }
 }

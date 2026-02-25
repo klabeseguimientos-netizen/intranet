@@ -455,7 +455,6 @@ export default function ContratosIndex({
                                     lastPage={contratos.last_page}
                                     total={contratos.total}
                                     perPage={contratos.per_page}
-                                    onPageChange={handlePageChange}
                                 />
                             </div>
                         )}

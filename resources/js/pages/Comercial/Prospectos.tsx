@@ -6,7 +6,6 @@ import { LeadCardMobile, LeadTableRow, PipelineStatistics } from '@/components/l
 import { FilterBar, ActiveFilters } from '@/components/filters';
 import { Pagination, EmptyState } from '@/components/ui';
 import NuevoComentarioModal from '@/components/Modals/NuevoComentarioModal';
-import EditarLeadModal from '@/components/Modals/EditarLeadModal';
 import VerNotaModal from '@/components/Modals/VerNotaModal';
 import TiemposEstados from '@/components/leads/TiemposEstados';
 import {
@@ -31,9 +30,10 @@ interface Props {
     total: number;
     nuevo: number;
     contactado: number;
-    calificado: number;
+    seguimiento: number;
     propuesta: number;
     negociacion: number;
+    pausado: number;
   };
   prefijosFiltro: Array<{
     id: string;
@@ -68,13 +68,14 @@ interface Props {
     } | null;
   };
   origenes: Origen[];
-  estadosLead: Array<EstadoLead & { tipo: string }>;  // ← Fix tipo
+  estadosLead: Array<EstadoLead & { tipo: string }>;
   tiposComentario: TipoComentario[];
   rubros: Rubro[];
   comerciales: Comercial[];
   provincias: Provincia[];
   hay_comerciales: boolean;
   comentariosPorLead?: Record<number, number>;
+  presupuestosPorLead?: Record<number, number>;
 }
 
 export default function Prospectos({ 
@@ -90,6 +91,7 @@ export default function Prospectos({
   provincias = [],
   hay_comerciales = false,
   comentariosPorLead = {},
+  presupuestosPorLead = {},
   prefijosFiltro = [],
   prefijoUsuario = null
 }: Props) {
@@ -130,19 +132,29 @@ export default function Prospectos({
   const handlePageChange = useCallback((page: number) => {
     const params = new URLSearchParams();
     
+    // Incluir TODOS los filtros activos
     if (activeFilters.search) params.append('search', activeFilters.search);
     if (activeFilters.estado_id) params.append('estado_id', activeFilters.estado_id);
     if (activeFilters.origen_id) params.append('origen_id', activeFilters.origen_id);
+    if (activeFilters.prefijo_id) params.append('prefijo_id', activeFilters.prefijo_id);
     if (activeFilters.fecha_inicio) params.append('fecha_inicio', activeFilters.fecha_inicio);
     if (activeFilters.fecha_fin) params.append('fecha_fin', activeFilters.fecha_fin);
     
-    const queryString = params.toString() ? `?${params.toString()}&page=${page}` : `?page=${page}`;
-    router.get(`/comercial/prospectos${queryString}`);
+    // Agregar la página
+    params.append('page', page.toString());
+    
+    // Construir URL con todos los parámetros
+    const queryString = params.toString();
+    router.get(`/comercial/prospectos${queryString ? `?${queryString}` : ''}`);
   }, [activeFilters]);
   
   const contarComentariosDeLead = useCallback((leadId: number): number => {
     return comentariosPorLead[leadId] || 0;
   }, [comentariosPorLead]);
+  
+  const contarPresupuestosDeLead = useCallback((leadId: number): number => {
+    return presupuestosPorLead[leadId] || 0;
+  }, [presupuestosPorLead]);
   
   const tieneNotas = useCallback((lead: Lead): boolean => {
     if (lead.notas && Array.isArray(lead.notas)) {
@@ -192,7 +204,10 @@ export default function Prospectos({
           </h2>
         </div>
         
-        <PipelineStatistics estadisticas={estadisticas} />
+        <PipelineStatistics 
+        estadisticas={estadisticas}
+        estadosLead={estadosLead}         
+        />
         
         {/* Filtros */}
         <FilterBar 
@@ -244,8 +259,8 @@ export default function Prospectos({
                   origenes={origenes}
                   estadosLead={estadosLead}
                   comentariosCount={contarComentariosDeLead(lead.id)}
+                  presupuestosCount={contarPresupuestosDeLead(lead.id)}
                   usuario={usuario}
-                  onEditar={(lead) => handleOpenModal('editarLead', lead)}
                   onNuevoComentario={(lead) => handleOpenModal('nuevoComentario', lead)}
                   onVerNota={(lead) => handleOpenModal('verNota', lead)}
                   onTiemposEstados={(lead) => handleOpenModal('tiemposEstados', lead)}
@@ -268,7 +283,7 @@ export default function Prospectos({
                       Estado
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Origen
+                      Presupuestos
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Comentarios
@@ -289,8 +304,8 @@ export default function Prospectos({
                       origenes={origenes}
                       estadosLead={estadosLead}
                       comentariosCount={contarComentariosDeLead(lead.id)}
+                      presupuestosCount={contarPresupuestosDeLead(lead.id)}
                       usuario={usuario}
-                      onEditar={(lead) => handleOpenModal('editarLead', lead)}
                       onNuevoComentario={(lead) => handleOpenModal('nuevoComentario', lead)}
                       onVerNota={(lead) => handleOpenModal('verNota', lead)}
                       onTiemposEstados={(lead) => handleOpenModal('tiemposEstados', lead)}
@@ -306,7 +321,6 @@ export default function Prospectos({
               lastPage={last_page}
               total={total}
               perPage={per_page}
-              onPageChange={handlePageChange}
             />
           </>
         )}
@@ -321,24 +335,9 @@ export default function Prospectos({
         estadosLead={estadosLead}
         comentariosExistentes={selectedLead ? contarComentariosDeLead(selectedLead.id) : 0}
         onSuccess={() => {
-          router.reload({ only: ['leads', 'comentariosPorLead'] });
+          router.reload({ only: ['leads', 'comentariosPorLead', 'presupuestosPorLead'] });
         }}
       />
-      
-      <EditarLeadModal
-        isOpen={showModals.editarLead}
-        onClose={handleCloseModals}
-        lead={selectedLead}
-        origenes={origenes}
-        rubros={rubros}
-        comerciales={comerciales}
-        provincias={provincias}
-        usuario={usuario}
-        onSuccess={() => {
-          router.reload({ only: ['leads'] });
-        }}
-      />
-      
       <VerNotaModal
         isOpen={showModals.verNota}
         onClose={handleCloseModals}

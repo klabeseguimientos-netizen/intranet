@@ -69,9 +69,10 @@ class ProspectosController extends Controller
         $comerciales = $this->filterService->getComercialesActivos($usuario);
         $hay_comerciales = $comerciales->count() > 0;
         
-        // Obtener conteo de comentarios
+        // Obtener conteos
         $leadIds = $leads->pluck('id')->toArray();
         $comentariosPorLead = $this->filterService->getConteoComentarios($leadIds);
+        $presupuestosPorLead = $this->filterService->getConteoPresupuestos($leadIds);
         
         // Obtener datos del usuario
         $usuarioData = $this->getUsuarioData($usuario);
@@ -85,6 +86,7 @@ class ProspectosController extends Controller
             'comerciales' => $comerciales,
             'hay_comerciales' => $hay_comerciales,
             'comentariosPorLead' => $comentariosPorLead,
+            'presupuestosPorLead' => $presupuestosPorLead,
             'prefijosFiltro' => $prefijosFiltro,
             'prefijoUsuario' => $prefijoUsuario,
             'filters' => $request->only(['search', 'estado_id', 'origen_id', 'prefijo_id', 'fecha_inicio', 'fecha_fin']),

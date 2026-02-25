@@ -485,13 +485,12 @@ class ContratoController extends Controller
         ]);
     }
 
-    
-public function descargarPdf($id)
+    public function descargarPdf($id)
 {
     $contrato = Contrato::with([
         'vehiculos',
-        'debitoCbu',        // Mantener camelCase para método de pago
-        'debitoTarjeta',    // Mantener camelCase para método de pago
+        'debitoCbu',
+        'debitoTarjeta',
         'estado',
         'empresa',
         'presupuesto' => function($query) {
@@ -499,14 +498,40 @@ public function descargarPdf($id)
                 'tasa',
                 'abono',
                 'promocion.productos',
-                'agregados' => function($q) {
-                    $q->with('productoServicio.tipo');
-                }
+                'agregados'
             ]);
         }
     ])->findOrFail($id);
 
-    // Determinar la compañía - EXACTAMENTE como funcionaba antes
+    // HIDRATAR MANUALMENTE LOS AGREGADOS CON NOMBRES DE PRODUCTOS
+    if ($contrato->presupuesto && $contrato->presupuesto->agregados) {
+        foreach ($contrato->presupuesto->agregados as $agregado) {
+            $producto = \App\Models\ProductoServicio::with('tipo')->find($agregado->prd_servicio_id);
+            $agregado->producto_nombre = $producto ? $producto->nombre : 'Producto #' . $agregado->prd_servicio_id;
+            $agregado->tipo_id = $producto?->tipo_id;
+            $agregado->tipo_nombre = $producto?->tipo?->nombre_tipo_abono ?? '';
+            
+            // Guardar el objeto producto completo para acceso a más propiedades
+            $agregado->producto_data = $producto;
+        }
+    }
+
+    // HIDRATAR TASA SI ES NECESARIO
+    if ($contrato->presupuesto && $contrato->presupuesto->tasa_id) {
+        if (!$contrato->presupuesto->tasa) {
+            $tasa = \App\Models\ProductoServicio::find($contrato->presupuesto->tasa_id);
+            $contrato->presupuesto->tasa = $tasa;
+        }
+    }
+
+    // HIDRATAR ABONO SI ES NECESARIO
+    if ($contrato->presupuesto && $contrato->presupuesto->abono_id) {
+        if (!$contrato->presupuesto->abono) {
+            $abono = \App\Models\ProductoServicio::find($contrato->presupuesto->abono_id);
+            $contrato->presupuesto->abono = $abono;
+        }
+    }
+
     $compania = [
         'id' => 1,
         'nombre' => 'LOCALSAT',
@@ -538,20 +563,21 @@ public function descargarPdf($id)
         }
     }
 
-    // Renderizar la vista Blade
     $html = view('pdf.contrato', [
         'contrato' => $contrato,
         'compania' => $compania
     ])->render();
 
     try {
-        // Generar PDF con Browsershot - CONFIGURACIÓN SIMPLE como funcionaba
         $pdf = Browsershot::html($html)
             ->setOption('args', ['--no-sandbox', '--disable-setuid-sandbox'])
             ->setOption('disable-gpu', true)
             ->format('A4')
             ->margins(10, 10, 10, 10)
             ->showBackground()
+            ->showBrowserHeaderAndFooter()
+            ->hideHeader()
+            ->footerHtml('<div style="text-align: right; font-size: 8pt; width: 100%; padding-right: 20px; font-family: Arial, sans-serif; color: #666;">Página <span class="pageNumber"></span> de <span class="totalPages"></span></div>')
             ->pdf();
 
         return response($pdf)
@@ -567,5 +593,4 @@ public function descargarPdf($id)
         return response()->json(['error' => 'Error al generar PDF: ' . $e->getMessage()], 500);
     }
 }
-
 }

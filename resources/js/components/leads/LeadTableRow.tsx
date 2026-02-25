@@ -10,8 +10,8 @@ interface LeadTableRowProps {
   origenes: Origen[];
   estadosLead: EstadoLead[];
   comentariosCount: number;
+  presupuestosCount: number;
   usuario: any;
-  onEditar: (lead: Lead) => void;
   onNuevoComentario: (lead: Lead) => void;
   onVerNota: (lead: Lead) => void;
   onTiemposEstados: (lead: Lead) => void;
@@ -22,8 +22,8 @@ const LeadTableRow: React.FC<LeadTableRowProps> = ({
   origenes,
   estadosLead,
   comentariosCount,
+  presupuestosCount,
   usuario,
-  onEditar,
   onNuevoComentario,
   onVerNota,
   onTiemposEstados
@@ -43,6 +43,7 @@ const LeadTableRow: React.FC<LeadTableRowProps> = ({
   
   return (
     <tr className="hover:bg-gray-50 transition-colors">
+      {/* Prospecto */}
       <td className="px-4 py-3">
         <div>
           <p className="font-medium text-gray-900">
@@ -51,28 +52,36 @@ const LeadTableRow: React.FC<LeadTableRowProps> = ({
           <p className="text-xs text-gray-500">ID: {lead.id}</p>
         </div>
       </td>
+      
+      {/* Contacto */}
       <td className="px-4 py-3">
         <div>
           <p className="text-sm text-gray-900">{lead.email || 'Sin email'}</p>
           <p className="text-xs text-gray-500">{lead.telefono || 'Sin teléfono'}</p>
         </div>
       </td>
+      
+      {/* Estado */}
       <td className="px-4 py-3">
         {estado && <BadgeEstado estado={estado} />}
       </td>
-      <td className="px-4 py-3">
-        {origen && <BadgeOrigen origen={origen} />}
+      
+      {/* PRESUPUESTOS - Solo número, sin fondo */}
+      <td className="px-4 py-3 text-sm text-gray-700">
+        {presupuestosCount}
       </td>
-      <td className="px-4 py-3">
-        <div className="flex items-center">
-          <span className={`text-sm font-medium ${comentariosCount > 0 ? 'text-blue-600' : 'text-gray-500'}`}>
-            {comentariosCount}
-          </span>
-        </div>
+      
+      {/* COMENTARIOS - Solo número, sin fondo */}
+      <td className="px-4 py-3 text-sm text-gray-700">
+        {comentariosCount}
       </td>
+      
+      {/* Registro */}
       <td className="px-4 py-3 text-sm text-gray-500">
         {formatDate(lead.created)}
       </td>
+      
+      {/* Acciones */}
       <td className="px-4 py-3">
         <div className="flex items-center space-x-2">
           <Link 
@@ -83,16 +92,6 @@ const LeadTableRow: React.FC<LeadTableRowProps> = ({
             <Eye className="h-4 w-4 mr-1" />
             Detalles
           </Link>
-          
-          <button 
-            type="button"
-            onClick={() => onEditar(lead)}
-            className="inline-flex items-center text-sat hover:text-sat-600 text-sm px-2 py-1 hover:bg-sat/10 rounded transition-colors"
-            title="Editar lead"
-          >
-            <Edit className="h-4 w-4 mr-1" />
-            Editar
-          </button>
           
           <button 
             type="button"

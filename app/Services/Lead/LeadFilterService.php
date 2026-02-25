@@ -139,34 +139,49 @@ class LeadFilterService
         return $totalComentariosPorLead;
     }
     
-public function getDatosFiltros($usuario = null): array
-{
-    $data = [
-        'origenes' => DB::table('origenes_contacto')->where('activo', 1)->get(),
-        'estadosLead' => EstadoLead::where('activo', 1)
-            ->whereNotIn('tipo', ['recontacto', 'final_negativo'])
-            ->get(),
-        'tiposComentario' => DB::table('tipo_comentario')
-            ->where('es_activo', 1)
-            ->where(function($query) {
-                $query->where('aplica_a', 'lead')
-                      ->orWhere('aplica_a', 'ambos');
-            })
-            ->get(),
-        'rubros' => DB::table('rubros')->where('activo', 1)->get(),
-        'provincias' => DB::table('provincias')
-            ->where('activo', 1)
-            ->orderBy('provincia')
-            ->get(['id', 'provincia as nombre']),
-    ];
-    
-    // Si se pasa el usuario, incluir comerciales
-    if ($usuario) {
-        $data['comerciales'] = $this->getComercialesActivos($usuario);
+    public function getConteoPresupuestos(array $leadIds): array
+    {
+    if (empty($leadIds)) {
+        return [];
     }
     
-    return $data;
-}
+    return DB::table('presupuestos')
+        ->select('lead_id', DB::raw('COUNT(*) as total'))
+        ->whereIn('lead_id', $leadIds)
+        ->whereNull('deleted_at')
+        ->groupBy('lead_id')
+        ->pluck('total', 'lead_id')
+        ->toArray();
+    }
+
+    public function getDatosFiltros($usuario = null): array
+    {
+        $data = [
+            'origenes' => DB::table('origenes_contacto')->where('activo', 1)->get(),
+            'estadosLead' => EstadoLead::where('activo', 1)
+                ->whereNotIn('tipo', ['recontacto', 'final_negativo','final_positivo'])
+                ->get(),
+            'tiposComentario' => DB::table('tipo_comentario')
+                ->where('es_activo', 1)
+                ->where(function($query) {
+                    $query->where('aplica_a', 'lead')
+                        ->orWhere('aplica_a', 'ambos');
+                })
+                ->get(),
+            'rubros' => DB::table('rubros')->where('activo', 1)->get(),
+            'provincias' => DB::table('provincias')
+                ->where('activo', 1)
+                ->orderBy('provincia')
+                ->get(['id', 'provincia as nombre']),
+        ];
+        
+        // Si se pasa el usuario, incluir comerciales
+        if ($usuario) {
+            $data['comerciales'] = $this->getComercialesActivos($usuario);
+        }
+        
+        return $data;
+    }
 
     public function getPrefijosFiltro($usuario): Collection
     {

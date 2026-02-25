@@ -94,7 +94,7 @@ class LeadPerdidoStatsService
                 DB::raw('COUNT(sp.id) as total'),
                 DB::raw("SUM(CASE WHEN el.tipo = 'recontacto' THEN 1 ELSE 0 END) as recontactados"),
                 DB::raw("SUM(CASE WHEN el.nombre = 'Perdido' THEN 1 ELSE 0 END) as aun_perdidos"),
-                DB::raw("SUM(CASE WHEN el.tipo IN ('contactado', 'calificado', 'negociacion', 'propuesta') THEN 1 ELSE 0 END) as recuperados")
+                DB::raw("SUM(CASE WHEN el.tipo IN ('contactado', 'seguimiento', 'negociacion', 'propuesta') THEN 1 ELSE 0 END) as recuperados")
             )
             ->groupBy('mp.id', 'mp.nombre')
             ->orderByDesc('total')

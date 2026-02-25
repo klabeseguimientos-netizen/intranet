@@ -5,8 +5,9 @@ namespace App\Console\Commands;
 
 use App\Services\Lead\Notifications\LeadCommentNotificationService;
 use App\Services\Lead\Notifications\LeadAssignmentNotificationService;
+use App\Services\Lead\Notifications\LeadExpiredNotificationService; // ← NUEVO
 use App\Services\Presupuesto\PresupuestoNotificationService;
-use App\Services\Contrato\ContratoNotificationService; // Nuevo
+use App\Services\Contrato\ContratoNotificationService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -17,18 +18,21 @@ class VerificarNotificaciones extends Command
     
     protected $commentNotificationService;
     protected $assignmentNotificationService;
+    protected $expiredNotificationService; // ← NUEVO
     protected $presupuestoNotificationService;
-    protected $contratoNotificationService; // Nuevo
+    protected $contratoNotificationService;
 
     public function __construct(
         LeadCommentNotificationService $commentNotificationService,
         LeadAssignmentNotificationService $assignmentNotificationService,
+        LeadExpiredNotificationService $expiredNotificationService, // ← NUEVO
         PresupuestoNotificationService $presupuestoNotificationService,
-        ContratoNotificationService $contratoNotificationService // Nuevo
+        ContratoNotificationService $contratoNotificationService
     ) {
         parent::__construct();
         $this->commentNotificationService = $commentNotificationService;
         $this->assignmentNotificationService = $assignmentNotificationService;
+        $this->expiredNotificationService = $expiredNotificationService; // ← NUEVO
         $this->presupuestoNotificationService = $presupuestoNotificationService;
         $this->contratoNotificationService = $contratoNotificationService;
     }
@@ -38,6 +42,12 @@ class VerificarNotificaciones extends Command
         $this->info('[' . now()->format('Y-m-d H:i:s') . '] Iniciando verificación de notificaciones...');
         
         try {
+            // ===== LEADS VENCIDOS (30 días) ===== ← NUEVO
+            $this->info('Verificando leads vencidos (30 días)...');
+            $resultadoVencidos = $this->expiredNotificationService->verificarLeadsVencidos();
+            $this->info("✓ Leads vencidos procesados: {$resultadoVencidos['procesados']}");
+            $this->info("✓ Notificaciones de vencimiento: {$resultadoVencidos['notificaciones']}");
+            
             // ===== LEADS =====
             $this->info('✓ Notificaciones de leads: se manejan al asignar');
             
@@ -47,7 +57,7 @@ class VerificarNotificaciones extends Command
             $this->info("✓ Presupuestos procesados: {$resultadoPresupuestos['procesados']}");
             $this->info("✓ Notificaciones de presupuestos: {$resultadoPresupuestos['notificaciones']}");
             
-            // ===== CONTRATOS ===== (nuevo)
+            // ===== CONTRATOS =====
             $this->info('Verificando contratos...');
             $resultadoContratos = $this->contratoNotificationService->verificarContratos();
             $this->info("✓ Contratos procesados: {$resultadoContratos['procesados']}");

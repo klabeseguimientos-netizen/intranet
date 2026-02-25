@@ -40,12 +40,24 @@ class LeadCommentService
             $tipoComentario = TipoComentario::findOrFail($data['tipo_comentario_id']);
             $esRechazo = $tipoComentario->nombre === 'Rechazo lead';
             
+            // Validar comentario solo si NO es rechazo
+            if (!$esRechazo && empty($data['comentario'])) {
+                throw new \Exception('El comentario es obligatorio para este tipo de acción.');
+            }
+            
+            // Para rechazo, si no hay comentario, usar uno por defecto
+            $comentarioTexto = $data['comentario'];
+            if ($esRechazo && empty($comentarioTexto)) {
+                $motivo = MotivoPerdida::find($data['motivo_perdida_id'] ?? 0);
+                $comentarioTexto = 'Lead rechazado' . ($motivo ? ' - Motivo: ' . $motivo->nombre : '');
+            }
+            
             // 1. Crear comentario
             $comentario = Comentario::create([
                 'lead_id' => $leadId,
                 'usuario_id' => $usuarioId,
                 'tipo_comentario_id' => $data['tipo_comentario_id'],
-                'comentario' => $data['comentario'],
+                'comentario' => $comentarioTexto,
                 'created' => now()
             ]);
             
@@ -92,7 +104,7 @@ class LeadCommentService
             throw $e;
         }
     }
-    
+        
     /**
      * Obtener comentarios de un lead
      */
@@ -207,11 +219,11 @@ class LeadCommentService
     {
         return [
             'Contacto inicial' => 'Contactado',
-            'Seguimiento lead' => 'Calificado',
+            'Seguimiento lead' => 'Seguimiento',
             'Negociación' => 'Negociación',
             'Propuesta enviada' => 'Propuesta Enviada',
             'Rechazo lead' => 'Perdido',
-            'Pausa temporal' => 'En Pausa',
+            'Pausa temporal' => 'Pausado',
         ];
     }
     

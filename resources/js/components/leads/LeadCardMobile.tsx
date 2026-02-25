@@ -10,8 +10,8 @@ interface LeadCardMobileProps {
   origenes: Origen[];
   estadosLead: EstadoLead[];
   comentariosCount: number;
+  presupuestosCount: number;
   usuario: any;
-  onEditar: (lead: Lead) => void;
   onNuevoComentario: (lead: Lead) => void;
   onVerNota: (lead: Lead) => void;
   onTiemposEstados: (lead: Lead) => void;
@@ -22,8 +22,8 @@ const LeadCardMobile: React.FC<LeadCardMobileProps> = ({
   origenes,
   estadosLead,
   comentariosCount,
+  presupuestosCount,
   usuario,
-  onEditar,
   onNuevoComentario,
   onVerNota,
   onTiemposEstados
@@ -77,6 +77,25 @@ const LeadCardMobile: React.FC<LeadCardMobileProps> = ({
         )}
       </div>
 
+      {/* Presupuestos */}
+      {presupuestosCount > 0 && (
+        <div className="mb-3 p-2 bg-blue-50 border border-blue-100 rounded text-xs">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1 text-blue-700">
+              <FileText className="w-3 h-3" />
+              <span className="font-medium">Presupuestos: {presupuestosCount}</span>
+            </div>
+            <Link 
+              href={`/presupuestos?lead_id=${lead.id}`}
+              className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+            >
+              Ver todos
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Notas */}
       {tieneNotas && (
         <div className="mb-3 p-2 bg-purple-50 border border-purple-100 rounded text-xs">
           <div className="flex items-center gap-1 text-purple-700">
@@ -87,15 +106,24 @@ const LeadCardMobile: React.FC<LeadCardMobileProps> = ({
       )}
       
       <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-        <div>
+        <div className="flex flex-col gap-1">
           <span className="text-xs text-gray-500">
             Registro: {formatDate(lead.created)}
           </span>
-          {comentariosCount > 0 && (
-            <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-              {comentariosCount} comentario{comentariosCount !== 1 ? 's' : ''}
-            </span>
-          )}
+          <div className="flex gap-2">
+            {presupuestosCount > 0 && (
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded inline-flex items-center gap-1">
+                <FileText className="w-3 h-3" />
+                {presupuestosCount}
+              </span>
+            )}
+            {comentariosCount > 0 && (
+              <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded inline-flex items-center gap-1">
+                <MessageSquare className="w-3 h-3" />
+                {comentariosCount}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex space-x-2">
           <Link 
@@ -105,15 +133,6 @@ const LeadCardMobile: React.FC<LeadCardMobileProps> = ({
           >
             <Eye className="h-4 w-4" />
           </Link>
-          
-          <button 
-            type="button"
-            onClick={() => onEditar(lead)}
-            className="text-sat hover:text-sat-600 p-1"
-            title="Editar lead"
-          >
-            <Edit className="h-4 w-4" />
-          </button>
           
           <button 
             type="button"

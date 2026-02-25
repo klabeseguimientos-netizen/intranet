@@ -494,7 +494,6 @@ export default function PresupuestosIndex({
                                     lastPage={presupuestos.last_page}
                                     total={presupuestos.total}
                                     perPage={presupuestos.per_page}
-                                    onPageChange={handlePageChange}
                                 />
                             </div>
                         )}

@@ -72,7 +72,7 @@ class LeadPerdidoQueryService
         match ($request->estado) {
             'perdido' => $query->whereHas('lead.estadoLead', fn($q) => $q->where('nombre', 'Perdido')),
             'recontactado' => $query->whereHas('lead.estadoLead', fn($q) => $q->where('tipo', 'recontacto')),
-            'recuperado' => $query->whereHas('lead.estadoLead', fn($q) => $q->whereIn('tipo', ['contactado', 'calificado', 'negociacion', 'propuesta'])),
+            'recuperado' => $query->whereHas('lead.estadoLead', fn($q) => $q->whereIn('tipo', ['contactado', 'seguimiento', 'negociacion', 'propuesta'])),
             default => null
         };
     }

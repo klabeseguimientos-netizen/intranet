@@ -527,7 +527,6 @@ export default function PresupuestosUnificadosTab({
                         lastPage={totalPages}
                         total={todosLosPresupuestos.length}
                         perPage={ITEMS_PER_PAGE}
-                        onPageChange={handlePageChange}
                     />
                 </div>
             )}
