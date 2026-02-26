@@ -103,12 +103,10 @@ export const usePresupuestoForm = ({
     const isFieldDisabled = useCallback((field: string): boolean => {
         if (!state.promocionId || !promocionSeleccionada) return false;
         
-        // Verificar si la tasa está en la promoción
         if (field === 'tasaId' || field === 'tasaBonificacion') {
             return hayPromocionEnTasa();
         }
         
-        // Verificar si el abono está en la promoción
         if (field === 'abonoId' || field === 'abonoBonificacion') {
             return hayPromocionEnAbono();
         }
@@ -143,15 +141,7 @@ export const usePresupuestoForm = ({
         }
     }, [state.promocionId, promociones]);
 
-    // Efecto para validar cantidad de vehículos
-    useEffect(() => {
-        if (state.promocionId && state.cantidadVehiculos < cantidadMinimaPromo) {
-            toast.warning(`La promoción requiere un mínimo de ${cantidadMinimaPromo} vehículos. Se ajustará automáticamente.`);
-            updateField('cantidadVehiculos', cantidadMinimaPromo);
-        }
-    }, [state.cantidadVehiculos, state.promocionId, cantidadMinimaPromo]);
-
-    // Efectos para valores de tasas y abonos
+    // Efecto para valores de tasas
     useEffect(() => {
         setValores(prev => ({ 
             ...prev, 
@@ -159,6 +149,7 @@ export const usePresupuestoForm = ({
         }));
     }, [state.tasaId, tasas, getProductoValor]);
 
+    // Efecto para valores de abonos
     useEffect(() => {
         const todosAbonos = [...abonos, ...convenios];
         setValores(prev => ({ 
@@ -166,20 +157,6 @@ export const usePresupuestoForm = ({
             valorAbono: getProductoValor(state.abonoId, todosAbonos) 
         }));
     }, [state.abonoId, abonos, convenios, getProductoValor]);
-
-    // Efecto para bonificación automática por débito (CORREGIDO)
-    useEffect(() => {
-        // Solo aplicar débito si:
-        // 1. No hay promoción en el abono
-        // 2. No es bonificación manual
-        // 3. Hay método de pago seleccionado
-        if (!hayPromocionEnAbono() && !state.bonificacionManual && state.abonoMetodoPagoId) {
-            const metodo = metodosPago.find(m => m.id === state.abonoMetodoPagoId);
-            if (metodo?.tipo === 'debito') {
-                setState(prev => ({ ...prev, abonoBonificacion: 7 }));
-            }
-        }
-    }, [state.abonoMetodoPagoId, metodosPago, state.bonificacionManual, hayPromocionEnAbono]);
 
     // Resetear bonificación manual al cambiar abono
     useEffect(() => {
@@ -203,6 +180,7 @@ export const usePresupuestoForm = ({
         field: K, 
         value: PresupuestoFormState[K]
     ) => {
+        // Solo validar cantidad de vehículos, no ajustar automáticamente
         if (field === 'cantidadVehiculos' && state.promocionId) {
             const numValue = value as number;
             if (numValue < cantidadMinimaPromo) {
@@ -218,7 +196,6 @@ export const usePresupuestoForm = ({
     const cargarProductosPromocion = useCallback((promocion: PromocionDTO) => {
         let minVehiculos = 1;
         
-        // Resetear arrays de accesorios y servicios
         const nuevosAccesorios: PresupuestoAgregadoDTO[] = [];
         const nuevosServicios: PresupuestoAgregadoDTO[] = [];
         
@@ -265,7 +242,6 @@ export const usePresupuestoForm = ({
             }
         });
 
-        // Actualizar estado con los nuevos arrays (reemplazando los anteriores)
         setState(prev => ({
             ...prev,
             accesoriosAgregados: nuevosAccesorios,
@@ -273,18 +249,18 @@ export const usePresupuestoForm = ({
         }));
 
         if (minVehiculos > 1) {
-            updateField('cantidadVehiculos', minVehiculos);
+            // Solo actualizar si es mayor, sin toast
+            setState(prev => ({ ...prev, cantidadVehiculos: minVehiculos }));
         }
 
         toast.success('Productos de la promoción cargados correctamente');
-    }, [updateField, setState, toast]);
+    }, [updateField, toast]);
 
     // Función para aplicar promoción
     const aplicarPromocion = useCallback((promocionId: number | null) => {
         updateField('promocionId', promocionId);
         
         if (!promocionId) {
-            // Si se quita la promoción, resetear campos
             setState(prev => ({
                 ...prev,
                 tasaId: 0,
@@ -306,7 +282,7 @@ export const usePresupuestoForm = ({
 
         cargarProductosPromocion(promocion);
         toast.success(`Promoción "${promocion.nombre}" aplicada`);
-    }, [promociones, updateField, cargarProductosPromocion, toast, setState]);
+    }, [promociones, updateField, cargarProductosPromocion, toast]);
 
     // Calcular productos con promoción
     const accesoriosConPromocion = useMemo((): ProductoResumenItem[] => {
@@ -442,7 +418,7 @@ export const usePresupuestoForm = ({
         return true;
     }, [state, toast, cantidadMinimaPromo]);
 
-    // Submit del formulario
+    // Submit del formulario - SOLO AQUÍ SE GUARDA
     const handleSubmit = useCallback((e: React.FormEvent) => {
         e.preventDefault();
         
@@ -526,9 +502,9 @@ export const usePresupuestoForm = ({
         updateField,
         aplicarPromocion,
         isFieldDisabled,
-        hayPromocionEnAbono,      // ← NUEVA FUNCIÓN EXPORTADA
-        hayPromocionEnTasa,        // ← NUEVA FUNCIÓN EXPORTADA
-        productoEstaEnPromocion,   // ← NUEVA FUNCIÓN EXPORTADA
+        hayPromocionEnAbono,
+        hayPromocionEnTasa,
+        productoEstaEnPromocion,
         setAccesoriosAgregados: useCallback((items: PresupuestoAgregadoDTO[]) => 
             updateField('accesoriosAgregados', items), [updateField]),
         setServiciosAgregados: useCallback((items: PresupuestoAgregadoDTO[]) => 

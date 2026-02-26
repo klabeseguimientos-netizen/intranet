@@ -190,6 +190,71 @@ class ProspectosController extends Controller
         ]);
     }
     
+/**
+ * Obtener tipos de comentario para clientes
+ */
+public function tiposComentarioCliente()
+{
+    try {
+        $tipos = TipoComentario::where('es_activo', 1)
+            ->where(function($query) {
+                $query->where('aplica_a', 'cliente')
+                      ->orWhere('aplica_a', 'ambos');
+            })
+            ->get();
+        
+        return response()->json($tipos);
+    } catch (\Exception $e) {
+        Log::error('Error cargando tipos de comentario para cliente:', [
+            'error' => $e->getMessage()
+        ]);
+        return response()->json(['error' => 'Error al cargar tipos'], 500);
+    }
+}
+
+/**
+ * Obtener tipos de comentario para recontacto (estados final_negativo)
+ */
+public function tiposComentarioRecontacto()
+{
+    try {
+        $tipos = TipoComentario::where('es_activo', 1)
+            ->where(function($query) {
+                $query->where('aplica_a', 'recontacto')
+                      ->orWhere('aplica_a', 'ambos');
+            })
+            ->get();
+        
+        return response()->json($tipos);
+    } catch (\Exception $e) {
+        Log::error('Error cargando tipos de comentario para recontacto:', [
+            'error' => $e->getMessage()
+        ]);
+        return response()->json(['error' => 'Error al cargar tipos'], 500);
+    }
+}
+
+/**
+ * Obtener tipos de comentario para leads normales
+ */
+public function tiposComentarioLead()
+{
+    try {
+        $tipos = TipoComentario::where('es_activo', 1)
+            ->where(function($query) {
+                $query->where('aplica_a', 'lead')
+                      ->orWhere('aplica_a', 'ambos');
+            })
+            ->get();
+        
+        return response()->json($tipos);
+    } catch (\Exception $e) {
+        Log::error('Error cargando tipos de comentario para lead:', [
+            'error' => $e->getMessage()
+        ]);
+        return response()->json(['error' => 'Error al cargar tipos'], 500);
+    }
+}
     /**
      * Método para obtener tiempos entre estados
      */
@@ -216,72 +281,67 @@ class ProspectosController extends Controller
         }
     }
     
-    /**
-     * Editar lead
-     */
-    public function edit($id)
-    {
-        $lead = Lead::findOrFail($id);
-        
-        if ($lead->es_cliente == 1) {
-            return redirect()->route('comercial.prospectos.index')
-                ->with('warning', 'Este lead ya se convirtió en cliente y no se puede editar.');
-        }
-        
-        return Inertia::render('Comercial/LeadEdit', [
-            'lead' => $lead,
-        ]);
+/**
+ * Editar lead
+ */
+public function edit($id)
+{
+    $lead = Lead::findOrFail($id);
+    
+    // ELIMINADA la restricción de cliente
+    
+    return Inertia::render('Comercial/LeadEdit', [
+        'lead' => $lead,
+    ]);
+}
+
+/**
+ * Actualizar lead
+ */
+public function update(Request $request, $id)
+{
+    $lead = Lead::find($id);
+    
+    if (!$lead) {
+        return $this->handleErrorResponse('Lead no encontrado', 404);
     }
     
-    /**
-     * Actualizar lead
-     */
-    public function update(Request $request, $id)
-    {
-        $lead = Lead::find($id);
-        
-        if (!$lead) {
-            return $this->handleErrorResponse('Lead no encontrado', 404);
+    // ELIMINADA la restricción de cliente
+    
+    $validated = $request->validate([
+        'prefijo_id' => 'nullable|integer',
+        'nombre_completo' => 'required|string|max:100',
+        'genero' => 'required|in:masculino,femenino,otro,no_especifica',
+        'telefono' => 'nullable|string|max:20',
+        'email' => 'nullable|email|max:150',
+        'localidad_id' => 'nullable|integer|exists:localidades,id',
+        'rubro_id' => 'nullable|integer|exists:rubros,id',
+        'origen_id' => 'nullable|integer|exists:origenes_contacto,id',
+    ]);
+    
+    try {
+        // Limpiar datos
+        foreach (['prefijo_id', 'localidad_id', 'rubro_id', 'origen_id'] as $field) {
+            $validated[$field] = !empty($validated[$field]) ? $validated[$field] : null;
         }
         
-        if ($lead->es_cliente == 1) {
-            return $this->handleErrorResponse('No se puede editar un lead convertido en cliente', 403);
-        }
-        
-        $validated = $request->validate([
-            'prefijo_id' => 'nullable|integer',
-            'nombre_completo' => 'required|string|max:100',
-            'genero' => 'required|in:masculino,femenino,otro,no_especifica',
-            'telefono' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:150',
-            'localidad_id' => 'nullable|integer|exists:localidades,id',
-            'rubro_id' => 'nullable|integer|exists:rubros,id',
-            'origen_id' => 'nullable|integer|exists:origenes_contacto,id',
+        $lead->update([
+            ...$validated,
+            'modified' => now(),
+            'modified_by' => auth()->id(),
         ]);
         
-        try {
-            // Limpiar datos
-            foreach (['prefijo_id', 'localidad_id', 'rubro_id', 'origen_id'] as $field) {
-                $validated[$field] = !empty($validated[$field]) ? $validated[$field] : null;
-            }
-            
-            $lead->update([
-                ...$validated,
-                'modified' => now(),
-                'modified_by' => auth()->id(),
-            ]);
-            
-            return $this->handleSuccessResponse('Lead actualizado exitosamente', $id);
-            
-        } catch (\Exception $e) {
-            Log::error('Error actualizando lead:', [
-                'error' => $e->getMessage(),
-                'lead_id' => $id,
-            ]);
-            
-            return $this->handleErrorResponse('Error al actualizar el lead: ' . $e->getMessage(), 500);
-        }
+        return $this->handleSuccessResponse('Lead actualizado exitosamente', $id);
+        
+    } catch (\Exception $e) {
+        Log::error('Error actualizando lead:', [
+            'error' => $e->getMessage(),
+            'lead_id' => $id,
+        ]);
+        
+        return $this->handleErrorResponse('Error al actualizar el lead: ' . $e->getMessage(), 500);
     }
+}
     
     /**
      * Convertir lead en cliente

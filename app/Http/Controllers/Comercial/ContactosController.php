@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Comercial;
 
 use App\Http\Controllers\Controller;
+use App\Services\Lead\LeadFilterService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Models\EmpresaContacto;
@@ -10,6 +11,13 @@ use Illuminate\Support\Facades\DB;
 
 class ContactosController extends Controller
 {
+    protected LeadFilterService $filterService;
+
+    public function __construct(LeadFilterService $filterService)
+    {
+        $this->filterService = $filterService;
+    }
+
     /**
      * Obtener los prefijos permitidos para un usuario
      */
@@ -41,7 +49,7 @@ class ContactosController extends Controller
         return $query;
     }
 
-    public function index(Request $request)
+  public function index(Request $request)
     {
         $usuario = auth()->user();
         
@@ -131,6 +139,13 @@ class ContactosController extends Controller
             $cantidadPrefijos = count($prefijosAsignados);
         }
         
+        // Obtener IDs de leads de los contactos para los conteos
+        $leadIds = $contactos->pluck('lead_id')->filter()->values()->toArray();
+        
+        // Usar el LeadFilterService para obtener los conteos (incluye legacy)
+        $comentariosPorLead = $this->filterService->getConteoComentarios($leadIds);
+        $presupuestosPorLead = $this->filterService->getConteoPresupuestos($leadIds);
+        
         return Inertia::render('Comercial/Contactos', [
             'contactos' => $contactos,
             'estadisticas' => [
@@ -140,9 +155,16 @@ class ContactosController extends Controller
             'filters' => $request->only(['search']),
             'usuario' => [
                 've_todas_cuentas' => (bool) $usuario->ve_todas_cuentas,
+                'rol_id' => $usuario->rol_id,
+                'personal_id' => $usuario->personal_id,
+                'nombre_completo' => $usuario->personal ? 
+                    $usuario->personal->nombre . ' ' . $usuario->personal->apellido : 
+                    $usuario->nombre_usuario,
                 'cantidad_prefijos' => $cantidadPrefijos,
                 'prefijos_asignados' => $prefijosAsignados,
             ],
+            'comentariosPorLead' => $comentariosPorLead,
+            'presupuestosPorLead' => $presupuestosPorLead,
         ]);
     }
     
@@ -443,4 +465,81 @@ class ContactosController extends Controller
         return redirect()->route('comercial.contactos.index')
             ->with('success', 'Contacto eliminado exitosamente');
     }
+
+    /**
+ * Obtener conteo de comentarios (incluyendo legacy)
+ */
+private function getConteoComentarios(array $leadIds): array
+{
+    if (empty($leadIds)) {
+        return [];
+    }
+
+    // Comentarios actuales
+    $comentariosActuales = DB::table('comentarios')
+        ->select('lead_id', DB::raw('COUNT(*) as total'))
+        ->whereIn('lead_id', $leadIds)
+        ->whereNull('deleted_at')
+        ->groupBy('lead_id')
+        ->pluck('total', 'lead_id')
+        ->toArray();
+
+    // Comentarios legacy
+    $comentariosLegacy = DB::table('comentarios_legacy')
+        ->select('lead_id', DB::raw('COUNT(*) as total'))
+        ->whereIn('lead_id', $leadIds)
+        ->groupBy('lead_id')
+        ->pluck('total', 'lead_id')
+        ->toArray();
+
+    // Combinar
+    $resultado = [];
+    foreach ($leadIds as $leadId) {
+        $total = ($comentariosActuales[$leadId] ?? 0) + ($comentariosLegacy[$leadId] ?? 0);
+        if ($total > 0) {
+            $resultado[$leadId] = $total;
+        }
+    }
+
+    return $resultado;
+}
+
+/**
+ * Obtener conteo de presupuestos (incluyendo legacy)
+ */
+private function getConteoPresupuestos(array $leadIds): array
+{
+    if (empty($leadIds)) {
+        return [];
+    }
+
+    // Presupuestos actuales
+    $presupuestosActuales = DB::table('presupuestos')
+        ->select('lead_id', DB::raw('COUNT(*) as total'))
+        ->whereIn('lead_id', $leadIds)
+        ->whereNull('deleted_at')
+        ->groupBy('lead_id')
+        ->pluck('total', 'lead_id')
+        ->toArray();
+
+    // Presupuestos legacy
+    $presupuestosLegacy = DB::table('presupuestos_legacy')
+        ->select('lead_id', DB::raw('COUNT(*) as total'))
+        ->whereIn('lead_id', $leadIds)
+        ->groupBy('lead_id')
+        ->pluck('total', 'lead_id')
+        ->toArray();
+
+    // Combinar
+    $resultado = [];
+    foreach ($leadIds as $leadId) {
+        $total = ($presupuestosActuales[$leadId] ?? 0) + ($presupuestosLegacy[$leadId] ?? 0);
+        if ($total > 0) {
+            $resultado[$leadId] = $total;
+        }
+    }
+
+    return $resultado;
+}
+
 }

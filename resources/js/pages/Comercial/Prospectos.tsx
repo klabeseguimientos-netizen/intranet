@@ -321,6 +321,7 @@ export default function Prospectos({
               lastPage={last_page}
               total={total}
               perPage={per_page}
+              only={['leads', 'comentariosPorLead', 'presupuestosPorLead']}
             />
           </>
         )}

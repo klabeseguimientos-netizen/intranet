@@ -112,8 +112,12 @@ class LeadFilterService
     
     public function getConteoComentarios(array $leadIds): array
     {
-        // Comentarios actuales
-        $comentariosPorLead = DB::table('comentarios')
+        if (empty($leadIds)) {
+            return [];
+        }
+
+        // Comentarios actuales (tabla comentarios)
+        $comentariosActuales = DB::table('comentarios')
             ->select('lead_id', DB::raw('COUNT(*) as total'))
             ->whereIn('lead_id', $leadIds)
             ->whereNull('deleted_at')
@@ -121,37 +125,59 @@ class LeadFilterService
             ->pluck('total', 'lead_id')
             ->toArray();
 
-        // Comentarios legacy
-        $comentariosLegacyPorLead = DB::table('comentarios_legacy')
+        // Comentarios legacy (tabla comentarios_legacy)
+        $comentariosLegacy = DB::table('comentarios_legacy')
             ->select('lead_id', DB::raw('COUNT(*) as total'))
             ->whereIn('lead_id', $leadIds)
             ->groupBy('lead_id')
             ->pluck('total', 'lead_id')
             ->toArray();
 
-        // Combinar
-        $totalComentariosPorLead = [];
+        // Combinar resultados
+        $resultado = [];
         foreach ($leadIds as $leadId) {
-            $total = ($comentariosPorLead[$leadId] ?? 0) + ($comentariosLegacyPorLead[$leadId] ?? 0);
-            $totalComentariosPorLead[$leadId] = $total;
+            $total = ($comentariosActuales[$leadId] ?? 0) + ($comentariosLegacy[$leadId] ?? 0);
+            if ($total > 0) {
+                $resultado[$leadId] = $total;
+            }
         }
 
-        return $totalComentariosPorLead;
+        return $resultado;
     }
-    
+
     public function getConteoPresupuestos(array $leadIds): array
     {
-    if (empty($leadIds)) {
-        return [];
-    }
-    
-    return DB::table('presupuestos')
-        ->select('lead_id', DB::raw('COUNT(*) as total'))
-        ->whereIn('lead_id', $leadIds)
-        ->whereNull('deleted_at')
-        ->groupBy('lead_id')
-        ->pluck('total', 'lead_id')
-        ->toArray();
+        if (empty($leadIds)) {
+            return [];
+        }
+        
+        // Presupuestos actuales (tabla presupuestos)
+        $presupuestosActuales = DB::table('presupuestos')
+            ->select('lead_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('lead_id', $leadIds)
+            ->whereNull('deleted_at')
+            ->groupBy('lead_id')
+            ->pluck('total', 'lead_id')
+            ->toArray();
+
+        // Presupuestos legacy (tabla presupuestos_legacy)
+        $presupuestosLegacy = DB::table('presupuestos_legacy')
+            ->select('lead_id', DB::raw('COUNT(*) as total'))
+            ->whereIn('lead_id', $leadIds)
+            ->groupBy('lead_id')
+            ->pluck('total', 'lead_id')
+            ->toArray();
+
+        // Combinar resultados
+        $resultado = [];
+        foreach ($leadIds as $leadId) {
+            $total = ($presupuestosActuales[$leadId] ?? 0) + ($presupuestosLegacy[$leadId] ?? 0);
+            if ($total > 0) {
+                $resultado[$leadId] = $total;
+            }
+        }
+
+        return $resultado;
     }
 
     public function getDatosFiltros($usuario = null): array

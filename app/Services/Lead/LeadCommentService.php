@@ -30,9 +30,7 @@ class LeadCommentService
     {
         $lead = Lead::findOrFail($leadId);
         
-        if ($lead->es_cliente == 1) {
-            throw new \Exception('No se puede agregar comentarios a un lead convertido en cliente.');
-        }
+        // ELIMINADA la restricción de cliente
         
         DB::beginTransaction();
         
@@ -67,8 +65,8 @@ class LeadCommentService
                 'acciones' => ['comentario_creado']
             ];
             
-            // 2. Manejar rechazo de lead
-            if ($esRechazo) {
+            // 2. Manejar rechazo de lead (solo si no es cliente)
+            if ($esRechazo && $lead->es_cliente != 1) {
                 $this->procesarRechazoLead($data, $lead, $usuarioId, $comentario);
                 $resultado['mensaje'] = 'Lead rechazado exitosamente. Se registró en seguimientos de pérdida.';
                 $resultado['acciones'][] = 'rechazo_procesado';
@@ -86,8 +84,8 @@ class LeadCommentService
                 $resultado['acciones'][] = 'recordatorio_creado';
             }
             
-            // 4. Cambiar estado del lead automáticamente
-            if (!empty($data['cambiar_estado_lead'])) {
+            // 4. Cambiar estado del lead automáticamente (solo si no es cliente)
+            if (!empty($data['cambiar_estado_lead']) && $lead->es_cliente != 1) {
                 $estadoCambiado = $this->cambiarEstadoLead($lead, $tipoComentario, $usuarioId);
                 if ($estadoCambiado) {
                     $resultado['mensaje'] .= ' y estado actualizado';
@@ -112,9 +110,7 @@ class LeadCommentService
     {
         $lead = Lead::findOrFail($leadId);
         
-        if ($lead->es_cliente == 1) {
-            throw new \Exception('Este lead ya se convirtió en cliente y no se puede editar.');
-        }
+        // ELIMINADA la restricción de cliente
         
         $comentarios = Comentario::with(['tipoComentario', 'usuario.personal'])
             ->where('lead_id', $leadId)

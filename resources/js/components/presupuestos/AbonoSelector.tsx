@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from 'lucide-react';
+import { Loader2, CreditCard, FileText } from 'lucide-react';
 import { ProductoServicioDTO } from '@/types/presupuestos';
 
 interface Props {
@@ -47,66 +47,98 @@ export default function AbonoSelector({ value, onChange, error, disabled = false
     };
 
     return (
-        <div className="space-y-3">
-            <div className="flex flex-wrap gap-4">
-                <label className="flex items-center gap-2 text-sm">
-                    <input
-                        type="radio"
-                        value="abono"
-                        checked={tipo === 'abono'}
-                        onChange={(e) => setTipo(e.target.value as 'abono')}
-                        disabled={disabled}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50"
-                    />
-                    Abono Mensual
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                    <input
-                        type="radio"
-                        value="convenio"
-                        checked={tipo === 'convenio'}
-                        onChange={(e) => setTipo(e.target.value as 'convenio')}
-                        disabled={disabled}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-50"
-                    />
-                    Convenio
-                </label>
+        <div className="space-y-4">
+            {/* Selector de tipo simplificado - un renglón */}
+            <div className="flex gap-3">
+                <button
+                    type="button"
+                    onClick={() => setTipo('abono')}
+                    disabled={disabled}
+                    className={`
+                        flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all
+                        ${tipo === 'abono' 
+                            ? 'border-local bg-local/5 text-local' 
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-local/30 hover:bg-gray-50'
+                        }
+                        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                    `}
+                >
+                    <CreditCard className="h-4 w-4" />
+                    <span className="font-medium text-sm">Abono Mensual</span>
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => setTipo('convenio')}
+                    disabled={disabled}
+                    className={`
+                        flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border-2 transition-all
+                        ${tipo === 'convenio' 
+                            ? 'border-local bg-local/5 text-local' 
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-local/30 hover:bg-gray-50'
+                        }
+                        ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                    `}
+                >
+                    <FileText className="h-4 w-4" />
+                    <span className="font-medium text-sm">Convenio</span>
+                </button>
             </div>
 
-            <Select
-                value={value?.toString() || ''}
-                onValueChange={handleValueChange}
-                disabled={loading || disabled}
-            >
-                <SelectTrigger className={`w-full bg-white ${error ? 'border-red-300' : ''}`}>
-                    <SelectValue placeholder={loading ? 'Cargando...' : `Seleccionar ${tipo}`} />
-                </SelectTrigger>
-                <SelectContent className="bg-white border border-gray-300 shadow-lg max-h-60">
-                    {loading ? (
-                        <div className="flex items-center justify-center p-4">
-                            <Loader2 className="h-5 w-5 animate-spin text-gray-500" />
-                        </div>
-                    ) : productos.length === 0 ? (
-                        <div className="p-2 text-center text-sm text-gray-500">
-                            No hay {tipo === 'abono' ? 'abonos' : 'convenios'} disponibles
-                        </div>
-                    ) : (
-                        productos.map(producto => {
-                            const precio = Number(producto.precio) || 0;
-                            return (
-                                <SelectItem key={producto.id} value={producto.id.toString()}>
-                                    <span className="truncate">
-                                        {producto.nombre} - $ {precio.toFixed(2)}
-                                    </span>
-                                </SelectItem>
-                            );
-                        })
-                    )}
-                </SelectContent>
-            </Select>
-            {error && (
-                <p className="text-xs text-red-600">{error}</p>
-            )}
+            {/* Selector de productos */}
+            <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                    Seleccionar {tipo === 'abono' ? 'Abono' : 'Convenio'}
+                </label>
+                <Select
+                    value={value?.toString() || ''}
+                    onValueChange={handleValueChange}
+                    disabled={loading || disabled}
+                >
+                    <SelectTrigger className={`
+                        w-full bg-white border-2 h-12
+                        ${error ? 'border-red-300' : 'border-gray-200'}
+                        ${!disabled && !error && 'hover:border-local focus:border-local focus:ring-2 focus:ring-local/20'}
+                        transition-all
+                    `}>
+                        <SelectValue placeholder={loading ? 'Cargando...' : `Elige un ${tipo}`} />
+                    </SelectTrigger>
+                    <SelectContent className="bg-white border border-gray-200 shadow-xl max-h-80">
+                        {loading ? (
+                            <div className="flex items-center justify-center p-4">
+                                <Loader2 className="h-5 w-5 animate-spin text-local" />
+                            </div>
+                        ) : productos.length === 0 ? (
+                            <div className="p-4 text-center text-sm text-gray-500">
+                                No hay {tipo === 'abono' ? 'abonos' : 'convenios'} disponibles
+                            </div>
+                        ) : (
+                            productos.map(producto => {
+                                const precio = Number(producto.precio) || 0;
+                                return (
+                                    <SelectItem 
+                                        key={producto.id} 
+                                        value={producto.id.toString()}
+                                        className="py-2 px-3 cursor-pointer hover:bg-gray-50"
+                                    >
+                                        <div className="flex items-center justify-between w-full gap-4">
+                                            <span className="text-sm text-gray-900 truncate max-w-[200px]">
+                                                {producto.nombre}
+                                            </span>
+                                            <span className="text-local font-medium text-sm whitespace-nowrap">
+                                                ${precio.toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </SelectItem>
+                                );
+                            })
+                        )}
+                    </SelectContent>
+                </Select>
+                {error && (
+                    <p className="text-xs text-red-600 mt-1">{error}</p>
+                )}
+            </div>
         </div>
     );
 }

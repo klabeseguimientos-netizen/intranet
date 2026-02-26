@@ -15,31 +15,36 @@ const LeadHeader: React.FC<LeadHeaderProps> = ({
   onEditar,
   onNuevoComentario
 }) => {
-const getBadgeEstado = () => {
-  if (lead.estado_lead?.color_hex) {
-    const colorHex = lead.estado_lead.color_hex.startsWith('#') 
-      ? lead.estado_lead.color_hex 
-      : `#${lead.estado_lead.color_hex}`;
+  const handleVolver = () => {
+    // Volver a la página anterior en el historial
+    window.history.back();
+  };
+
+  const getBadgeEstado = () => {
+    if (lead.estado_lead?.color_hex) {
+      const colorHex = lead.estado_lead.color_hex.startsWith('#') 
+        ? lead.estado_lead.color_hex 
+        : `#${lead.estado_lead.color_hex}`;
+      return (
+        <span 
+          className="px-3 py-1 text-sm rounded-full"
+          style={{ 
+            backgroundColor: `${colorHex}20`,
+            color: colorHex,
+            border: `1px solid ${colorHex}40`
+          }}
+        >
+          {lead.estado_lead.nombre}
+        </span>
+      );
+    }
+
     return (
-      <span 
-        className="px-3 py-1 text-sm rounded-full"
-        style={{ 
-          backgroundColor: `${colorHex}20`,
-          color: colorHex,
-          border: `1px solid ${colorHex}40`
-        }}
-      >
-        {lead.estado_lead.nombre}
+      <span className="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-800">
+        {lead.estado_lead?.nombre || 'Sin estado'}
       </span>
     );
-  }
-
-  return (
-    <span className="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-800">
-      {lead.estado_lead?.nombre || 'Sin estado'}
-    </span>
-  );
-};
+  };
 
   const getIconoGenero = () => {
     switch(lead.genero) {
@@ -65,12 +70,6 @@ const getBadgeEstado = () => {
     <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 sm:gap-4">
       <div className="flex-1">
         <div className="flex items-center gap-2 mb-2">
-          <button
-            onClick={() => router.visit('/comercial/prospectos')}
-            className="p-1 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             Lead #{lead.id}
           </h1>
@@ -124,7 +123,7 @@ const getBadgeEstado = () => {
       
       {/* Acciones */}
       <div className="flex items-center gap-2">
-        {/* NUEVO BOTÓN DE PRESUPUESTO */}
+        {/* Botón de Presupuesto */}
         <Link
           href={`/comercial/presupuestos/create?lead_id=${lead.id}`}
           className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm"
@@ -150,7 +149,7 @@ const getBadgeEstado = () => {
         </button>
         
         <button
-          onClick={() => router.visit('/comercial/prospectos')}
+          onClick={handleVolver}
           className="flex items-center gap-2 px-3 sm:px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm"
         >
           <ArrowLeft className="h-4 w-4" />

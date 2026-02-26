@@ -78,6 +78,7 @@ export interface Lead {
         id: number;
         nombre: string;
         color_hex: string;
+        tipo: string; 
     };
     prefijo?: {  
         id: number;

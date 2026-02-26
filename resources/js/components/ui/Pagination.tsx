@@ -1,13 +1,16 @@
 // resources/js/components/ui/Pagination.tsx
 import React from 'react';
-import { Link } from '@inertiajs/react';  // ← Importar Link
+import { Link } from '@inertiajs/react';
 
 interface PaginationProps {
   currentPage: number;
   lastPage: number;
   total: number;
   perPage: number;
-  // Eliminar onPageChange
+  baseUrl?: string; // Opcional, si no se pasa usa la URL actual
+  preserveState?: boolean;
+  preserveScroll?: boolean;
+  only?: string[]; // Para actualizar solo ciertos datos
 }
 
 const Pagination: React.FC<PaginationProps> = ({
@@ -15,15 +18,40 @@ const Pagination: React.FC<PaginationProps> = ({
   lastPage,
   total,
   perPage,
+  baseUrl,
+  preserveState = true,
+  preserveScroll = true,
+  only,
 }) => {
   const startItem = (currentPage - 1) * perPage + 1;
   const endItem = Math.min(currentPage * perPage, total);
   
-  // Función para construir la URL con los filtros actuales
+  // Función para construir la URL
   const getPageUrl = (page: number) => {
+    // Si no se proporciona baseUrl, usar la URL actual sin el parámetro page
+    if (!baseUrl) {
+      const url = new URL(window.location.href);
+      url.searchParams.set('page', page.toString());
+      return url.pathname + url.search;
+    }
+    
+    // Si hay baseUrl, construir desde cero
     const params = new URLSearchParams(window.location.search);
     params.set('page', page.toString());
-    return `/comercial/prospectos?${params.toString()}`;
+    return `${baseUrl}?${params.toString()}`;
+  };
+  
+  // Determinar qué datos actualizar
+  const getOnly = () => {
+    if (only) return only;
+    // Por defecto, según la URL actual
+    if (window.location.pathname.includes('contactos')) {
+      return ['contactos'];
+    }
+    if (window.location.pathname.includes('prospectos')) {
+      return ['leads'];
+    }
+    return undefined;
   };
   
   return (
@@ -41,9 +69,9 @@ const Pagination: React.FC<PaginationProps> = ({
               ? 'text-gray-400 border-gray-300 cursor-not-allowed pointer-events-none' 
               : 'text-gray-700 border-gray-300 hover:bg-gray-50'
           }`}
-          preserveState
-          preserveScroll
-          only={['leads']}
+          preserveState={preserveState}
+          preserveScroll={preserveScroll}
+          only={getOnly()}
           disabled={currentPage === 1}
         >
           ← Anterior
@@ -66,9 +94,9 @@ const Pagination: React.FC<PaginationProps> = ({
               ? 'text-gray-400 border-gray-300 cursor-not-allowed pointer-events-none' 
               : 'text-gray-700 border-gray-300 hover:bg-gray-50'
           }`}
-          preserveState
-          preserveScroll
-          only={['leads']}
+          preserveState={preserveState}
+          preserveScroll={preserveScroll}
+          only={getOnly()}
           disabled={currentPage === lastPage}
         >
           Siguiente →

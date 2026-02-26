@@ -593,4 +593,5 @@ class ContratoController extends Controller
         return response()->json(['error' => 'Error al generar PDF: ' . $e->getMessage()], 500);
     }
 }
+
 }

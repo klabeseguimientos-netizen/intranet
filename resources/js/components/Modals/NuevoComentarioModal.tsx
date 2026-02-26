@@ -23,7 +23,10 @@ interface EstadoLead {
 interface Lead {
     id: number;
     nombre_completo: string;
+    email?: string; // Hacer opcional
+    telefono?: string; // Hacer opcional
     estado_lead_id?: number;
+    es_cliente?: boolean; 
 }
 
 interface MotivoPerdida {

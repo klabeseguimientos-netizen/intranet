@@ -6,27 +6,29 @@ interface EmptyStateProps {
   onClearFilters: () => void;
   title?: string;
   message?: string;
+  suggestion?: string; // Agregamos suggestion como prop opcional
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({
   hasFilters,
   onClearFilters,
   title,
-  message
+  message,
+  suggestion
 }) => {
   const defaultTitle = hasFilters 
-    ? 'No se encontraron prospectos'
-    : 'No hay prospectos disponibles';
+    ? 'No se encontraron resultados'
+    : 'No hay datos disponibles';
     
   const defaultMessage = hasFilters
-    ? 'No se encontraron prospectos con los filtros aplicados.'
-    : 'No hay prospectos registrados en el sistema.';
+    ? 'No se encontraron elementos con los filtros aplicados.'
+    : 'No hay elementos registrados en el sistema.';
 
   return (
     <div className="text-center py-12">
       <div className="text-gray-400 mb-4">
         <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
         </svg>
       </div>
       <h3 className="text-lg font-medium text-gray-900 mb-2">
@@ -35,11 +37,16 @@ const EmptyState: React.FC<EmptyStateProps> = ({
       <p className="text-gray-600 text-sm max-w-md mx-auto">
         {message || defaultMessage}
       </p>
+      {suggestion && (
+        <p className="text-gray-500 text-sm max-w-md mx-auto mt-2">
+          {suggestion}
+        </p>
+      )}
       {hasFilters && (
         <button
           type="button"
           onClick={onClearFilters}
-          className="mt-3 px-4 py-2 bg-sat text-white text-sm rounded hover:bg-sat-600 transition-colors"
+          className="mt-3 px-4 py-2 bg-local text-white text-sm rounded hover:bg-local-600 transition-colors"
         >
           Limpiar filtros
         </button>

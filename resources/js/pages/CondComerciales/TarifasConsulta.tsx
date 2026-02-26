@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import AppLayout from '@/layouts/app-layout';
 import DownloadModal from '@/components/Modals/DownloadModal';
+import { SpecialPriceButton } from '@/components/ui/SpecialPriceButton';
+import { sendWhatsApp, createPriceQueryMessage } from '@/utils/whatsapp.utils';
 import { router } from '@inertiajs/react';
 
 interface ProductoServicio {
@@ -124,7 +126,6 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, pe
         return nombre.replace(/\s+/g, ' ').trim();
     };
 
-
     const renderServicios = () => {
         return (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -147,6 +148,7 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, pe
                         {productosFiltrados.map((producto) => {
                             const colorCompania = getCompaniaColor(producto.compania_id);
                             const nombreCompania = getCompaniaNombre(producto.compania_id);
+                            const esPrecioConsultar = Number(producto.precio) === 0.01;
                             
                             return (
                                 <div key={producto.id} className="border border-gray-200 rounded-lg p-4 hover:border-sat transition-colors hover:shadow-md">
@@ -193,9 +195,13 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, pe
                                             <div className="text-sm md:text-base font-medium text-gray-700">
                                                 Valor:
                                             </div>
-                                            <div className="font-bold text-local text-lg md:text-xl">
-                                                {formatCurrency(producto.precio)}
-                                            </div>
+                                            {esPrecioConsultar ? (
+                                                <SpecialPriceButton producto={producto} />
+                                            ) : (
+                                                <div className="font-bold text-local text-lg md:text-xl">
+                                                    {formatCurrency(producto.precio)}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -231,6 +237,7 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, pe
                             const nombreLimpio = getNombreLimpio(abono.nombre);
                             const colorCompania = getCompaniaColor(abono.compania_id);
                             const nombreCompania = getCompaniaNombre(abono.compania_id);
+                            const esPrecioConsultar = Number(abono.precio) === 0.01;
                             
                             // Determinar color basado en el tipo
                             const getColorClase = () => {
@@ -303,12 +310,20 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, pe
                                     <div className="p-4">
                                         {/* Precio destacado */}
                                         <div className="text-center mb-4">
-                                            <div className="text-2xl md:text-3xl font-bold text-local mb-1">
-                                                {formatCurrency(abono.precio)}
-                                            </div>
-                                            <div className="text-sm text-gray-600">
-                                                por mes
-                                            </div>
+                                            {esPrecioConsultar ? (
+                                                <div className="mb-2">
+                                                    <SpecialPriceButton producto={abono} />
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    <div className="text-2xl md:text-3xl font-bold text-local mb-1">
+                                                        {formatCurrency(abono.precio)}
+                                                    </div>
+                                                    <div className="text-sm text-gray-600">
+                                                        por mes
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
                                         
                                         {/* Detalles en grid */}
@@ -391,6 +406,7 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, pe
                         {productosFiltrados.map((producto) => {
                             const colorCompania = getCompaniaColor(producto.compania_id);
                             const nombreCompania = getCompaniaNombre(producto.compania_id);
+                            const esPrecioConsultar = Number(producto.precio) === 0.01;
                             
                             return (
                                 <div key={producto.id} className="border border-gray-200 rounded-lg p-4 hover:border-sat transition-colors hover:shadow-md">
@@ -437,9 +453,13 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, pe
                                             <div className="text-sm md:text-base font-medium text-gray-700">
                                                 Valor:
                                             </div>
-                                            <div className="font-bold text-local text-lg md:text-xl">
-                                                {formatCurrency(producto.precio)}
-                                            </div>
+                                            {esPrecioConsultar ? (
+                                                <SpecialPriceButton producto={producto} />
+                                            ) : (
+                                                <div className="font-bold text-local text-lg md:text-xl">
+                                                    {formatCurrency(producto.precio)}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -483,7 +503,7 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, pe
                     </div>
                     
                     <div className="flex items-center gap-3">
-                        {/* Botón de descarga - NUEVO */}
+                        {/* Botón de descarga */}
                         <button
                             onClick={() => setIsDownloadModalOpen(true)}
                             className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors"
@@ -502,13 +522,14 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, pe
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                 </svg>
                                 <span className="text-sm font-medium text-purple-900">
-                                    Acceso total - Todo el catalogo
+                                    Acceso total - Todo el catálogo
                                 </span>
                             </div>
                         )}
                     </div>
                 </div>
             </div>
+
             {/* Tabs - SOLO 2 FILAS EN MÓVIL, 1 FILA EN WEB */}
             <div className="mb-6">
                 <div className="border-b border-gray-200">
@@ -542,23 +563,23 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, pe
                                             activeTab === tipo.nombre_tipo_abono
                                                 ? 'border-sat text-sat'
                                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                                    }`}
-                                >
-                                    {tipo.nombre_tipo_abono} ({productos.filter(p => p.es_activo && p.tipo_id === tipo.id).length})
-                                </button>
-                            ))}
-                        </nav>
-                    )}
-                </div>
+                                        }`}
+                                    >
+                                        {tipo.nombre_tipo_abono} ({productos.filter(p => p.es_activo && p.tipo_id === tipo.id).length})
+                                    </button>
+                                ))}
+                            </nav>
+                        )}
+                    </div>
                     
                     {/* Versión web: 1 sola fila */}
                     <div className="hidden md:block">
-                        <nav className="flex -mb-px">
+                        <nav className="flex -mb-px space-x-8">
                             {tiposActivos.map((tipo) => (
                                 <button
                                     key={tipo.id}
                                     onClick={() => setActiveTab(tipo.nombre_tipo_abono)}
-                                    className={`py-3 px-4 text-sm font-medium border-b-2 whitespace-nowrap ${
+                                    className={`py-3 px-1 text-sm font-medium border-b-2 whitespace-nowrap ${
                                         activeTab === tipo.nombre_tipo_abono
                                             ? 'border-sat text-sat'
                                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -584,7 +605,7 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, pe
                 puedeVerTodas={permisos.puede_ver_todas}
             />
 
-            {/* Sección de información - CORREGIDO: verificamos que compania_actual exista */}
+            {/* Sección de información */}
             <div className="mt-6 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <div className="p-4 md:p-6 border-b border-gray-200">
                     <h3 className="text-base md:text-lg font-semibold text-gray-900">
@@ -623,7 +644,7 @@ export default function TarifasConsulta({ productos_servicios, tipos_prd_srv, pe
                             </div>
                             <div className="text-sm text-amber-700">
                                 {permisos.puede_ver_todas 
-                                    ? 'Acceso a todo el catalogo' 
+                                    ? 'Acceso a todo el catálogo' 
                                     : permisos.compania_actual 
                                         ? `Viendo: ${permisos.compania_actual.nombre}`
                                         : 'Compañía asignada'}

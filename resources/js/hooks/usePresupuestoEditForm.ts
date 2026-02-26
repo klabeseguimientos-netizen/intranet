@@ -107,6 +107,20 @@ export const usePresupuestoEditForm = ({
         return Number(producto?.precio) || 0;
     }, []);
 
+    // Función para verificar si la promoción afecta al abono
+    const hayPromocionEnAbono = useCallback((): boolean => {
+        if (!state.promocionId || !promocionSeleccionada) return false;
+        return promocionSeleccionada.productos.some(p => 
+            p.producto.tipo_id === 1 || p.producto.tipo_id === 2
+        );
+    }, [state.promocionId, promocionSeleccionada]);
+
+    // Función para verificar si la promoción afecta a la tasa
+    const hayPromocionEnTasa = useCallback((): boolean => {
+        if (!state.promocionId || !promocionSeleccionada) return false;
+        return promocionSeleccionada.productos.some(p => p.producto.tipo_id === 4);
+    }, [state.promocionId, promocionSeleccionada]);
+
     // Efecto para actualizar la promoción seleccionada
     useEffect(() => {
         if (state.promocionId) {
@@ -134,14 +148,7 @@ export const usePresupuestoEditForm = ({
         }
     }, [state.promocionId, promociones]);
 
-    // Efecto para validar cantidad de vehículos
-    useEffect(() => {
-        if (state.promocionId && state.cantidadVehiculos < cantidadMinimaPromo) {
-            toast.warning(`La promoción requiere un mínimo de ${cantidadMinimaPromo} vehículos. Se ajustará automáticamente.`);
-            updateField('cantidadVehiculos', cantidadMinimaPromo);
-        }
-    }, [state.cantidadVehiculos, state.promocionId, cantidadMinimaPromo]);
-
+    // Efecto para valores de tasas
     useEffect(() => {
         setValores(prev => ({ 
             ...prev, 
@@ -149,6 +156,7 @@ export const usePresupuestoEditForm = ({
         }));
     }, [state.tasaId, tasas, getProductoValor]);
 
+    // Efecto para valores de abonos
     useEffect(() => {
         const todosAbonos = [...abonos, ...convenios];
         setValores(prev => ({ 
@@ -156,16 +164,6 @@ export const usePresupuestoEditForm = ({
             valorAbono: getProductoValor(state.abonoId, todosAbonos) || toNumber(presupuesto.valor_abono)
         }));
     }, [state.abonoId, abonos, convenios, getProductoValor]);
-
-    // Efecto para bonificación automática por débito
-    useEffect(() => {
-        if (!state.promocionId && !state.bonificacionManual && state.abonoMetodoPagoId) {
-            const metodo = metodosPago.find(m => m.id === state.abonoMetodoPagoId);
-            if (metodo?.tipo === 'debito') {
-                setState(prev => ({ ...prev, abonoBonificacion: 7 }));
-            }
-        }
-    }, [state.abonoMetodoPagoId, metodosPago, state.bonificacionManual, state.promocionId]);
 
     // Resetear bonificación manual al cambiar abono
     useEffect(() => {
@@ -184,6 +182,109 @@ export const usePresupuestoEditForm = ({
                calcularSubtotalAgregados(state.serviciosAgregados)
     }), [state.accesoriosAgregados, state.serviciosAgregados, calcularSubtotalAgregados]);
 
+    // Calcular productos con promoción
+    const accesoriosConPromocion = useMemo((): ProductoResumenItem[] => {
+        if (!promocionSeleccionada || productosPromocionIds.size === 0) return [];
+        
+        return state.accesoriosAgregados
+            .filter(item => item.prd_servicio_id && productosPromocionIds.has(item.prd_servicio_id))
+            .map(item => {
+                const promo = promocionSeleccionada.productos.find(p => p.producto_servicio_id === item.prd_servicio_id);
+                return {
+                    id: item.prd_servicio_id,
+                    nombre: promo?.producto.nombre || 'Accesorio',
+                    valor: item.valor,
+                    cantidad: item.cantidad,
+                    tipoPromocion: promo?.tipo_promocion,
+                    bonificacion: item.bonificacion || promo?.bonificacion
+                };
+            });
+    }, [state.accesoriosAgregados, promocionSeleccionada, productosPromocionIds]);
+
+    const serviciosConPromocion = useMemo((): ProductoResumenItem[] => {
+        if (!promocionSeleccionada || productosPromocionIds.size === 0) return [];
+        
+        return state.serviciosAgregados
+            .filter(item => item.prd_servicio_id && productosPromocionIds.has(item.prd_servicio_id))
+            .map(item => {
+                const promo = promocionSeleccionada.productos.find(p => p.producto_servicio_id === item.prd_servicio_id);
+                return {
+                    id: item.prd_servicio_id,
+                    nombre: promo?.producto.nombre || 'Servicio',
+                    valor: item.valor,
+                    cantidad: item.cantidad,
+                    tipoPromocion: promo?.tipo_promocion,
+                    bonificacion: item.bonificacion || promo?.bonificacion
+                };
+            });
+    }, [state.serviciosAgregados, promocionSeleccionada, productosPromocionIds]);
+
+    // Calcular productos normales (sin promoción)
+    const accesoriosNormales = useMemo((): ProductoResumenItem[] => {
+        if (!productosPromocionIds.size) {
+            return state.accesoriosAgregados.map(item => ({
+                id: item.prd_servicio_id,
+                nombre: 'Accesorio',
+                valor: item.valor,
+                cantidad: item.cantidad,
+                bonificacion: item.bonificacion
+            }));
+        }
+        
+        return state.accesoriosAgregados
+            .filter(item => !productosPromocionIds.has(item.prd_servicio_id))
+            .map(item => ({
+                id: item.prd_servicio_id,
+                nombre: 'Accesorio',
+                valor: item.valor,
+                cantidad: item.cantidad,
+                bonificacion: item.bonificacion
+            }));
+    }, [state.accesoriosAgregados, productosPromocionIds]);
+
+    const serviciosNormales = useMemo((): ProductoResumenItem[] => {
+        if (!productosPromocionIds.size) {
+            return state.serviciosAgregados.map(item => ({
+                id: item.prd_servicio_id,
+                nombre: 'Servicio',
+                valor: item.valor,
+                cantidad: item.cantidad,
+                bonificacion: item.bonificacion
+            }));
+        }
+        
+        return state.serviciosAgregados
+            .filter(item => !productosPromocionIds.has(item.prd_servicio_id))
+            .map(item => ({
+                id: item.prd_servicio_id,
+                nombre: 'Servicio',
+                valor: item.valor,
+                cantidad: item.cantidad,
+                bonificacion: item.bonificacion
+            }));
+    }, [state.serviciosAgregados, productosPromocionIds]);
+
+    // Determinar tipo de promoción para tasa y abono
+    const tasaPromocion = useMemo(() => {
+        if (!promocionSeleccionada) return null;
+        
+        const productoTasa = promocionSeleccionada.productos.find(p => p.producto.tipo_id === 4);
+        return productoTasa?.tipo_promocion === '2x1' || productoTasa?.tipo_promocion === '3x2' 
+            ? productoTasa.tipo_promocion 
+            : null;
+    }, [promocionSeleccionada]);
+
+    const abonoPromocion = useMemo(() => {
+        if (!promocionSeleccionada) return null;
+        
+        const productoAbono = promocionSeleccionada.productos.find(p => 
+            p.producto.tipo_id === 1 || p.producto.tipo_id === 2
+        );
+        return productoAbono?.tipo_promocion === '2x1' || productoAbono?.tipo_promocion === '3x2' 
+            ? productoAbono.tipo_promocion 
+            : null;
+    }, [promocionSeleccionada]);
+
     // Actions
     const updateField = useCallback(<K extends keyof PresupuestoFormState>(
         field: K, 
@@ -200,34 +301,22 @@ export const usePresupuestoEditForm = ({
         setState(prev => ({ ...prev, [field]: value }));
     }, [state.promocionId, cantidadMinimaPromo, toast]);
 
-    // Función para verificar si un producto específico está en promoción
-    const productoEstaEnPromocion = useCallback((productoId: number): boolean => {
-        if (!state.promocionId || !promocionSeleccionada) return false;
-        return promocionSeleccionada.productos.some(p => p.producto_servicio_id === productoId);
-    }, [state.promocionId, promocionSeleccionada]);
-
     // Función para verificar si un campo debe estar deshabilitado
     const isFieldDisabled = useCallback((field: string): boolean => {
         if (!state.promocionId || !promocionSeleccionada) return false;
         
-        // Verificar si la tasa está en la promoción
         if (field === 'tasaId' || field === 'tasaBonificacion') {
-            const productoTasa = promocionSeleccionada.productos.find(p => p.producto.tipo_id === 4);
-            return !!productoTasa;
+            return hayPromocionEnTasa();
         }
         
-        // Verificar si el abono está en la promoción
         if (field === 'abonoId' || field === 'abonoBonificacion') {
-            const productoAbono = promocionSeleccionada.productos.find(p => 
-                p.producto.tipo_id === 1 || p.producto.tipo_id === 2
-            );
-            return !!productoAbono;
+            return hayPromocionEnAbono();
         }
         
         return false;
-    }, [state.promocionId, promocionSeleccionada]);
+    }, [state.promocionId, promocionSeleccionada, hayPromocionEnTasa, hayPromocionEnAbono]);
 
-    // Función para cargar productos de la promoción (solo para cuando se cambia de promoción)
+    // Función para cargar productos de la promoción
     const cargarProductosPromocion = useCallback((promocion: PromocionDTO) => {
         let minVehiculos = 1;
         
@@ -284,9 +373,11 @@ export const usePresupuestoEditForm = ({
         }));
 
         if (minVehiculos > 1) {
-            updateField('cantidadVehiculos', minVehiculos);
+            setState(prev => ({ ...prev, cantidadVehiculos: minVehiculos }));
         }
-    }, [updateField, setState]);
+
+        toast.success('Productos de la promoción cargados correctamente');
+    }, [updateField, toast]);
 
     // Función para aplicar promoción
     const aplicarPromocion = useCallback((promocionId: number | null) => {
@@ -416,10 +507,23 @@ export const usePresupuestoEditForm = ({
         promocionSeleccionada,
         cantidadMinimaPromo,
         productosPromocionIds,
+        // NUEVAS PROPIEDADES PARA EL RESUMEN
+        accesoriosConPromocion,
+        serviciosConPromocion,
+        accesoriosNormales,
+        serviciosNormales,
+        tasaPromocion,
+        abonoPromocion,
+        // Funciones existentes
         updateField,
         aplicarPromocion,
         isFieldDisabled,
-        productoEstaEnPromocion,
+        hayPromocionEnAbono,
+        hayPromocionEnTasa,
+        productoEstaEnPromocion: useCallback((productoId: number): boolean => {
+            if (!state.promocionId || !promocionSeleccionada) return false;
+            return promocionSeleccionada.productos.some(p => p.producto_servicio_id === productoId);
+        }, [state.promocionId, promocionSeleccionada]),
         setAccesoriosAgregados: useCallback((items: PresupuestoAgregadoDTO[]) => 
             updateField('accesoriosAgregados', items), [updateField]),
         setServiciosAgregados: useCallback((items: PresupuestoAgregadoDTO[]) => 
