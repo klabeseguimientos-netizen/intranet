@@ -148,6 +148,9 @@ Route::middleware(['auth', 'usuario.activo'])->group(function () {
             Route::get('/datos-alta', [App\Http\Controllers\Comercial\Utils\LeadDataController::class, 'getDatosAlta']);
         });
         
+            Route::get('/leads', [LeadController::class, 'index'])->name('comercial.leads.index');
+            Route::post('/leads', [LeadController::class, 'store'])->name('comercial.leads.store');
+
         // ========== LEADS PERDIDOS CON PARÁMETROS ==========
         Route::prefix('leads-perdidos/{lead}')->group(function () {
             Route::get('/modal-seguimiento', [LeadsPerdidosController::class, 'modalSeguimiento'])->name('leads-perdidos.modal-seguimiento');
