@@ -54,9 +54,9 @@ class DetallesController extends Controller
             ->where('provincias.activo', 1)
             ->select(
                 'localidades.id',
-                'localidades.localidad',
+                'localidades.nombre',
                 'localidades.codigo_postal',
-                'provincias.provincia'
+                'provincias.nombre'
             )
             ->get()
             ->keyBy('id');
@@ -88,8 +88,8 @@ class DetallesController extends Controller
             if ($empresa->localidad_fiscal_id && isset($localidades[$empresa->localidad_fiscal_id])) {
                 $loc = $localidades[$empresa->localidad_fiscal_id];
                 $localidadFiscal = [
-                    'localidad' => $loc->localidad,
-                    'provincia' => $loc->provincia,
+                    'localidad' => $loc->nombre,
+                    'provincia' => $loc->nombre,
                     'codigo_postal' => $loc->codigo_postal,
                 ];
             }
@@ -201,9 +201,9 @@ class DetallesController extends Controller
             ->where('provincias.activo', 1)
             ->select(
                 'localidades.id',
-                'localidades.localidad',
+                'localidades.nombre',
                 'localidades.codigo_postal',
-                'provincias.provincia'
+                'provincias.nombre'
             )
             ->get()
             ->keyBy('id');
@@ -216,8 +216,8 @@ class DetallesController extends Controller
         if ($empresa->localidad_fiscal_id && isset($localidades[$empresa->localidad_fiscal_id])) {
             $loc = $localidades[$empresa->localidad_fiscal_id];
             $localidadFiscal = [
-                'localidad' => $loc->localidad,
-                'provincia' => $loc->provincia,
+                'localidad' => $loc->nombre,
+                'provincia' => $loc->nombre,
                 'codigo_postal' => $loc->codigo_postal,
             ];
         }

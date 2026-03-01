@@ -17,7 +17,7 @@ class ProvinciaController extends Controller
         try {
             $provincias = Provincia::activo()
                 ->ordenar()
-                ->get(['id', 'provincia']);
+                ->get(['id', 'nombre']);  // ← Cambiado de 'provincia' a 'nombre'
             
             return response()->json([
                 'success' => true,
@@ -49,7 +49,7 @@ class ProvinciaController extends Controller
             $localidades = $provincia->localidades->map(function ($localidad) {
                 return [
                     'id' => $localidad->id,
-                    'localidad' => $localidad->localidad,
+                    'nombre' => $localidad->nombre,  // ← Cambiado de 'localidad' a 'nombre'
                     'codigo_postal' => $localidad->codigo_postal,
                 ];
             });

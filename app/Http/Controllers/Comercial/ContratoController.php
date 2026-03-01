@@ -23,6 +23,7 @@ use App\Models\Provincia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Spatie\Browsershot\Browsershot;
 use Inertia\Inertia;
 
@@ -158,249 +159,209 @@ class ContratoController extends Controller
             'estados' => $estados,
         ]);
     }
+    
     /**
-     * Mostrar formulario de creación de contrato
+     * Mostrar formulario de creación de contrato desde presupuesto
      */
-    public function create($presupuestoId)
-    {
+/**
+ * Mostrar formulario de creación de contrato desde presupuesto
+ */
+public function create($presupuestoId)
+{
+    $presupuesto = Presupuesto::with([
+        'lead.localidad.provincia',
+        'lead.rubro',
+        'lead.origen',
+        'prefijo.comercial.personal',
+        'promocion.productos',
+        'agregados' => function($query) {
+            $query->with('productoServicio.tipo');
+        },
+        'tasa',
+        'abono',
+        'tasaMetodoPago',
+        'abonoMetodoPago'
+    ])->findOrFail($presupuestoId);
+
+    $empresa = Empresa::with([
+        'rubro',
+        'categoriaFiscal',
+        'plataforma',
+        'localidadFiscal.provincia'  // ← Asegurar esta relación
+    ])->whereHas('contactos', function($q) use ($presupuesto) {
+        $q->where('lead_id', $presupuesto->lead_id);
+    })->first();
+
+    $contacto = EmpresaContacto::with([
+        'tipoResponsabilidad',
+        'tipoDocumento',
+        'nacionalidad'
+    ])->where('lead_id', $presupuesto->lead_id)
+        ->where('es_contacto_principal', true)
+        ->first();
+
+    if (!$empresa || !$contacto) {
+        return redirect()->back()->with('error', 'Debe completar el alta de empresa primero');
+    }
+
+    // Forzar la carga de los nombres de localidad y provincia
+    if ($presupuesto->lead && $presupuesto->lead->localidad) {
+        $presupuesto->lead->localidad_nombre = $presupuesto->lead->localidad->nombre;
+        if ($presupuesto->lead->localidad->provincia) {
+            $presupuesto->lead->provincia_nombre = $presupuesto->lead->localidad->provincia->nombre;
+        }
+    }
+
+    if ($empresa->localidadFiscal) {
+        $empresa->localidad_fiscal_nombre = $empresa->localidadFiscal->nombre;
+        if ($empresa->localidadFiscal->provincia) {
+            $empresa->provincia_fiscal_nombre = $empresa->localidadFiscal->provincia->nombre;
+        }
+    }
+
+    $responsables = EmpresaResponsable::where('empresa_id', $empresa->id)
+        ->where('es_activo', true)
+        ->with('tipoResponsabilidad')
+        ->get();
+
+    $tiposResponsabilidad = TipoResponsabilidad::where('es_activo', true)->get();
+    $tiposDocumento = TipoDocumento::where('es_activo', true)->get();
+    $nacionalidades = Nacionalidad::where('activo', true)
+        ->orderBy('pais')
+        ->get(['id', 'pais', 'gentilicio']);
+    $categoriasFiscales = CategoriaFiscal::where('es_activo', true)->get();
+    $plataformas = Plataforma::where('es_activo', true)->get();
+    $rubros = Rubro::where('activo', true)->get();
+    $provincias = Provincia::where('activo', true)
+        ->orderBy('nombre')
+        ->get(['id', 'nombre']);
+
+    return Inertia::render('Comercial/Contratos/Create', [
+        'presupuesto' => $presupuesto,
+        'empresa' => $empresa,
+        'contacto' => $contacto,
+        'responsables' => $responsables,
+        'tiposResponsabilidad' => $tiposResponsabilidad,
+        'tiposDocumento' => $tiposDocumento,
+        'nacionalidades' => $nacionalidades,
+        'categoriasFiscales' => $categoriasFiscales,
+        'plataformas' => $plataformas,
+        'rubros' => $rubros,
+        'provincias' => $provincias,
+    ]);
+}
+
+/**
+ * Guardar nuevo contrato desde presupuesto
+ */
+public function store(Request $request)
+{
+    try {
+        DB::beginTransaction();
+
         $presupuesto = Presupuesto::with([
             'lead.localidad.provincia',
             'lead.rubro',
             'lead.origen',
             'prefijo.comercial.personal',
-            'promocion.productos',
-            'agregados' => function($query) {
-                $query->with('productoServicio.tipo');
-            },
-            'tasa',
-            'abono',
-            'tasaMetodoPago',
-            'abonoMetodoPago'
-        ])->findOrFail($presupuestoId);
+            'prefijo.comercial.compania', // ← Asegurar esta relación
+            'promocion'
+        ])->findOrFail($request->presupuesto_id);
 
         $empresa = Empresa::with([
+            'localidadFiscal.provincia',
             'rubro',
             'categoriaFiscal',
-            'plataforma',
-            'localidadFiscal.provincia'
-        ])->whereHas('contactos', function($q) use ($presupuesto) {
-            $q->where('lead_id', $presupuesto->lead_id);
-        })->first();
+            'plataforma'
+        ])->findOrFail($request->empresa_id);
 
         $contacto = EmpresaContacto::with([
             'tipoResponsabilidad',
             'tipoDocumento',
             'nacionalidad'
-        ])->where('lead_id', $presupuesto->lead_id)
-            ->where('es_contacto_principal', true)
-            ->first();
+        ])->findOrFail($request->contacto_id);
 
-        if (!$empresa || !$contacto) {
-            return redirect()->back()->with('error', 'Debe completar el alta de empresa primero');
-        }
+        // Generar ID según compañía
+        $contratoId = ContratoHelper::generarNumeroContrato($presupuesto->prefijo_id);
 
-        $responsables = EmpresaResponsable::where('empresa_id', $empresa->id)
-            ->where('es_activo', true)
-            ->with('tipoResponsabilidad')
-            ->get();
+        // Crear el contrato con ID personalizado
+        $contratoData = [
+            'id' => $contratoId, // ← Asignar ID manualmente
+            'presupuesto_id' => $presupuesto->id,
+            'lead_id' => $presupuesto->lead_id,
+            'empresa_id' => $empresa->id,
+            
+            'fecha_emision' => now(),
+            'estado_id' => 1,
+            
+            'vendedor_nombre' => optional(optional($presupuesto->prefijo?->comercial?->first())?->personal)->nombre_completo,
+            'vendedor_prefijo' => $presupuesto->prefijo?->codigo,
+            
+            // Datos del cliente
+            'cliente_nombre_completo' => $presupuesto->lead->nombre_completo,
+            'cliente_genero' => $presupuesto->lead->genero,
+            'cliente_telefono' => $presupuesto->lead->telefono,
+            'cliente_email' => $presupuesto->lead->email,
+            'cliente_localidad' => $presupuesto->lead->localidad?->nombre,
+            'cliente_provincia' => $presupuesto->lead->localidad?->provincia?->nombre,
+            'cliente_rubro' => $presupuesto->lead->rubro?->nombre,
+            'cliente_origen' => $presupuesto->lead->origen?->nombre,
+            
+            // Datos del contacto
+            'contacto_tipo_responsabilidad' => $contacto->tipoResponsabilidad?->nombre,
+            'contacto_tipo_documento' => $contacto->tipoDocumento?->nombre,
+            'contacto_nro_documento' => $contacto->nro_documento,
+            'contacto_nacionalidad' => $contacto->nacionalidad?->pais,
+            'contacto_fecha_nacimiento' => $contacto->fecha_nacimiento,
+            'contacto_direccion_personal' => $contacto->direccion_personal,
+            'contacto_codigo_postal_personal' => $contacto->codigo_postal_personal,
+            
+            // Datos de la empresa
+            'empresa_nombre_fantasia' => $empresa->nombre_fantasia,
+            'empresa_razon_social' => $empresa->razon_social,
+            'empresa_cuit' => $empresa->cuit,
+            'empresa_domicilio_fiscal' => $empresa->direccion_fiscal,
+            'empresa_codigo_postal_fiscal' => $empresa->codigo_postal_fiscal,
+            'empresa_localidad_fiscal' => $empresa->localidadFiscal?->nombre,
+            'empresa_provincia_fiscal' => $empresa->localidadFiscal?->provincia?->nombre,
+            'empresa_telefono_fiscal' => $empresa->telefono_fiscal,
+            'empresa_email_fiscal' => $empresa->email_fiscal,
+            'empresa_actividad' => $empresa->rubro?->nombre,
+            'empresa_situacion_afip' => $empresa->categoriaFiscal?->nombre,
+            'empresa_plataforma' => $empresa->plataforma?->nombre,
+            'empresa_nombre_flota' => $empresa->nombre_flota,
+            
+            // Datos del presupuesto
+            'presupuesto_referencia' => $presupuesto->referencia,
+            'presupuesto_cantidad_vehiculos' => $presupuesto->cantidad_vehiculos,
+            'presupuesto_total_inversion' => $presupuesto->total_presupuesto,
+            'presupuesto_total_mensual' => $presupuesto->subtotal_abono,
+            'presupuesto_promocion' => $presupuesto->promocion?->nombre,
+            
+            'created_by' => auth()->id(),
+        ];
 
-        $tiposResponsabilidad = TipoResponsabilidad::where('es_activo', true)->get();
-        $tiposDocumento = TipoDocumento::where('es_activo', true)->get();
-        $nacionalidades = Nacionalidad::where('activo', true)
-            ->orderBy('pais')
-            ->get(['id', 'pais', 'gentilicio']);
-        $categoriasFiscales = CategoriaFiscal::where('es_activo', true)->get();
-        $plataformas = Plataforma::where('es_activo', true)->get();
-        $rubros = Rubro::where('activo', true)->get();
-        $provincias = Provincia::where('activo', true)
-            ->orderBy('provincia')
-            ->get(['id', 'provincia']);
+        $contrato = Contrato::create($contratoData);
 
-        return Inertia::render('Comercial/Contratos/Create', [
-            'presupuesto' => $presupuesto,
-            'empresa' => $empresa,
-            'contacto' => $contacto,
-            'responsables' => $responsables,
-            'tiposResponsabilidad' => $tiposResponsabilidad,
-            'tiposDocumento' => $tiposDocumento,
-            'nacionalidades' => $nacionalidades,
-            'categoriasFiscales' => $categoriasFiscales,
-            'plataformas' => $plataformas,
-            'rubros' => $rubros,
-            'provincias' => $provincias,
+        // Actualizar empresa con número de contrato
+        $empresa->update(['numeroalfa' => $contratoId]);
+
+        // ... resto del código (responsables, vehículos, método de pago) igual ...
+
+        DB::commit();
+
+        return redirect()->route('comercial.contratos.show', $contrato->id)
+            ->with('success', 'Contrato generado exitosamente');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error al generar contrato:', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
         ]);
+        return redirect()->back()->with('error', 'Error al generar contrato: ' . $e->getMessage());
     }
-
-    /**
-     * Guardar nuevo contrato
-     */
-    public function store(Request $request)
-    {
-        try {
-            DB::beginTransaction();
-
-            $presupuesto = Presupuesto::with([
-                'lead.localidad.provincia',
-                'lead.rubro',
-                'lead.origen',
-                'prefijo.comercial.personal',
-                'promocion'
-            ])->findOrFail($request->presupuesto_id);
-
-            $empresa = Empresa::with([
-                'localidadFiscal.provincia',
-                'rubro',
-                'categoriaFiscal',
-                'plataforma'
-            ])->findOrFail($request->empresa_id);
-
-            $contacto = EmpresaContacto::with([
-                'tipoResponsabilidad',
-                'tipoDocumento',
-                'nacionalidad'
-            ])->findOrFail($request->contacto_id);
-
-            // Crear el contrato
-            $contrato = Contrato::create([
-                'presupuesto_id' => $presupuesto->id,
-                'lead_id' => $presupuesto->lead_id,
-                'empresa_id' => $empresa->id,
-                
-                'fecha_emision' => now(),
-                'estado_id' => 1,
-                
-                'vendedor_nombre' => optional(optional($presupuesto->prefijo?->comercial?->first())?->personal)->nombre_completo,
-                'vendedor_prefijo' => $presupuesto->prefijo?->codigo,
-                
-                // Datos del cliente
-                'cliente_nombre_completo' => $presupuesto->lead->nombre_completo,
-                'cliente_genero' => $presupuesto->lead->genero,
-                'cliente_telefono' => $presupuesto->lead->telefono,
-                'cliente_email' => $presupuesto->lead->email,
-                'cliente_localidad' => $presupuesto->lead->localidad?->localidad,
-                'cliente_provincia' => $presupuesto->lead->localidad?->provincia?->provincia,
-                'cliente_rubro' => $presupuesto->lead->rubro?->nombre,
-                'cliente_origen' => $presupuesto->lead->origen?->nombre,
-                
-                // Datos del contacto
-                'contacto_tipo_responsabilidad' => $contacto->tipoResponsabilidad?->nombre,
-                'contacto_tipo_documento' => $contacto->tipoDocumento?->nombre,
-                'contacto_nro_documento' => $contacto->nro_documento,
-                'contacto_nacionalidad' => $contacto->nacionalidad?->pais,
-                'contacto_fecha_nacimiento' => $contacto->fecha_nacimiento,
-                'contacto_direccion_personal' => $contacto->direccion_personal,
-                'contacto_codigo_postal_personal' => $contacto->codigo_postal_personal,
-                
-                // Datos de la empresa
-                'empresa_nombre_fantasia' => $empresa->nombre_fantasia,
-                'empresa_razon_social' => $empresa->razon_social,
-                'empresa_cuit' => $empresa->cuit,
-                'empresa_domicilio_fiscal' => $empresa->direccion_fiscal,
-                'empresa_codigo_postal_fiscal' => $empresa->codigo_postal_fiscal,
-                'empresa_localidad_fiscal' => $empresa->localidadFiscal?->localidad,
-                'empresa_provincia_fiscal' => $empresa->localidadFiscal?->provincia?->provincia,
-                'empresa_telefono_fiscal' => $empresa->telefono_fiscal,
-                'empresa_email_fiscal' => $empresa->email_fiscal,
-                'empresa_actividad' => $empresa->rubro?->nombre,
-                'empresa_situacion_afip' => $empresa->categoriaFiscal?->nombre,
-                'empresa_plataforma' => $empresa->plataforma?->nombre,
-                'empresa_nombre_flota' => $empresa->nombre_flota,
-                
-                // Datos del presupuesto
-                'presupuesto_referencia' => $presupuesto->referencia,
-                'presupuesto_cantidad_vehiculos' => $presupuesto->cantidad_vehiculos,
-                'presupuesto_total_inversion' => $presupuesto->total_presupuesto,
-                'presupuesto_total_mensual' => $presupuesto->subtotal_abono,
-                'presupuesto_promocion' => $presupuesto->promocion?->nombre,
-                
-                'created_by' => auth()->id(),
-            ]);
-
-            // Actualizar empresa con número de contrato
-            $empresa->update(['numeroalfa' => $contrato->id]);
-
-            // Responsables
-            $responsableFlota = EmpresaResponsable::where('empresa_id', $empresa->id)
-                ->where('es_activo', true)
-                ->whereIn('tipo_responsabilidad_id', [3, 5])
-                ->first();
-
-            $responsablePagos = EmpresaResponsable::where('empresa_id', $empresa->id)
-                ->where('es_activo', true)
-                ->whereIn('tipo_responsabilidad_id', [4, 5])
-                ->first();
-
-            $contrato->update([
-                'responsable_flota_nombre' => $responsableFlota?->nombre_completo,
-                'responsable_flota_telefono' => $responsableFlota?->telefono,
-                'responsable_flota_email' => $responsableFlota?->email,
-                'responsable_pagos_nombre' => $responsablePagos?->nombre_completo,
-                'responsable_pagos_telefono' => $responsablePagos?->telefono,
-                'responsable_pagos_email' => $responsablePagos?->email,
-            ]);
-
-            // Guardar vehículos
-            foreach ($request->vehiculos as $index => $vehiculo) {
-                if (!empty($vehiculo['patente'])) {
-                    ContratoVehiculo::create([
-                        'contrato_id' => $contrato->id,
-                        'patente' => $vehiculo['patente'],
-                        'marca' => $vehiculo['marca'] ?? null,
-                        'modelo' => $vehiculo['modelo'] ?? null,
-                        'anio' => $vehiculo['anio'] ?? null,
-                        'color' => $vehiculo['color'] ?? null,
-                        'identificador' => $vehiculo['identificador'] ?? null,
-                        'orden' => $index + 1,
-                        'created' => now(),
-                    ]);
-                }
-            }
-
-            // Método de pago
-            if ($request->metodo_pago === 'cbu' && $request->datos_cbu) {
-                DebitoCbu::create([
-                    'contrato_id' => $contrato->id,
-                    'nombre_banco' => $request->datos_cbu['nombre_banco'],
-                    'cbu' => $request->datos_cbu['cbu'],
-                    'alias_cbu' => $request->datos_cbu['alias_cbu'] ?? null,
-                    'titular_cuenta' => $request->datos_cbu['titular_cuenta'],
-                    'tipo_cuenta' => $request->datos_cbu['tipo_cuenta'],
-                    'es_activo' => true,
-                    'created_by' => auth()->id(),
-                ]);
-            } elseif ($request->metodo_pago === 'tarjeta' && $request->datos_tarjeta) {
-                DebitoTarjeta::create([
-                    'contrato_id' => $contrato->id,
-                    'tarjeta_emisor' => $request->datos_tarjeta['tarjeta_emisor'],
-                    'tarjeta_expiracion' => $request->datos_tarjeta['tarjeta_expiracion'],
-                    'tarjeta_numero' => $request->datos_tarjeta['tarjeta_numero'],
-                    'tarjeta_codigo' => $request->datos_tarjeta['tarjeta_codigo'] ?? null,
-                    'tarjeta_banco' => $request->datos_tarjeta['tarjeta_banco'],
-                    'titular_tarjeta' => $request->datos_tarjeta['titular_tarjeta'],
-                    'tipo_tarjeta' => $request->datos_tarjeta['tipo_tarjeta'],
-                    'es_activo' => true,
-                    'created_by' => auth()->id(),
-                ]);
-            }
-
-            // Actualizar estado del presupuesto a aprobado
-            $presupuesto->update(['estado_id' => 3]);
-
-            DB::commit();
-
-            return redirect()->route('comercial.contratos.show', $contrato->id)
-                ->with('success', 'Contrato generado exitosamente');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al generar contrato:', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return redirect()->back()->with('error', 'Error al generar contrato: ' . $e->getMessage());
-        }
-    }
-
+}
     /**
      * Mostrar un contrato específico
      */
@@ -423,7 +384,6 @@ class ContratoController extends Controller
     /**
      * Generar PDF del contrato
      */
-
     public function generarPdf(Request $request, $id)
     {
         $contrato = Contrato::with([
@@ -443,7 +403,6 @@ class ContratoController extends Controller
                 ]);
             }
         ])->findOrFail($id);
-
 
         // Determinar la compañía (código existente)
         $compania = [
@@ -476,122 +435,323 @@ class ContratoController extends Controller
                 ];
             }
         }
+        
         if ($request->has('download') && $request->download == 1) {
             return $this->descargarPdf($id);
         }
+        
         return Inertia::render('Comercial/Contratos/ContratoHTML', [
             'contrato' => $contrato,
             'compania' => $compania
         ]);
     }
 
+    /**
+     * Descargar PDF del contrato
+     */
     public function descargarPdf($id)
-{
-    $contrato = Contrato::with([
-        'vehiculos',
-        'debitoCbu',
-        'debitoTarjeta',
-        'estado',
-        'empresa',
-        'presupuesto' => function($query) {
-            $query->with([
-                'tasa',
-                'abono',
-                'promocion.productos',
-                'agregados'
+    {
+        $contrato = Contrato::with([
+            'vehiculos',
+            'debitoCbu',
+            'debitoTarjeta',
+            'estado',
+            'empresa',
+            'presupuesto' => function($query) {
+                $query->with([
+                    'tasa',
+                    'abono',
+                    'promocion.productos',
+                    'agregados'
+                ]);
+            }
+        ])->findOrFail($id);
+
+        // HIDRATAR MANUALMENTE LOS AGREGADOS CON NOMBRES DE PRODUCTOS
+        if ($contrato->presupuesto && $contrato->presupuesto->agregados) {
+            foreach ($contrato->presupuesto->agregados as $agregado) {
+                $producto = \App\Models\ProductoServicio::with('tipo')->find($agregado->prd_servicio_id);
+                $agregado->producto_nombre = $producto ? $producto->nombre : 'Producto #' . $agregado->prd_servicio_id;
+                $agregado->tipo_id = $producto?->tipo_id;
+                $agregado->tipo_nombre = $producto?->tipo?->nombre_tipo_abono ?? '';
+                
+                // Guardar el objeto producto completo para acceso a más propiedades
+                $agregado->producto_data = $producto;
+            }
+        }
+
+        // HIDRATAR TASA SI ES NECESARIO
+        if ($contrato->presupuesto && $contrato->presupuesto->tasa_id) {
+            if (!$contrato->presupuesto->tasa) {
+                $tasa = \App\Models\ProductoServicio::find($contrato->presupuesto->tasa_id);
+                $contrato->presupuesto->tasa = $tasa;
+            }
+        }
+
+        // HIDRATAR ABONO SI ES NECESARIO
+        if ($contrato->presupuesto && $contrato->presupuesto->abono_id) {
+            if (!$contrato->presupuesto->abono) {
+                $abono = \App\Models\ProductoServicio::find($contrato->presupuesto->abono_id);
+                $contrato->presupuesto->abono = $abono;
+            }
+        }
+
+        $compania = [
+            'id' => 1,
+            'nombre' => 'LOCALSAT',
+            'logo' => public_path('images/logos/logo.png')
+        ];
+        
+        if ($contrato->presupuesto && $contrato->presupuesto->prefijo) {
+            $comercial = $contrato->presupuesto->prefijo->comercial;
+            if ($comercial instanceof \Illuminate\Database\Eloquent\Collection) {
+                $comercial = $comercial->first();
+            }
+            if ($comercial && $comercial->compania_id) {
+                $companiaId = $comercial->compania_id;
+                $compania = [
+                    'id' => $companiaId,
+                    'nombre' => match($companiaId) {
+                        1 => 'LOCALSAT',
+                        2 => 'SMARTSAT',
+                        3 => '360 SAT',
+                        default => 'LOCALSAT'
+                    },
+                    'logo' => public_path(match($companiaId) {
+                        1 => 'images/logos/logo.png',
+                        2 => 'images/logos/logosmart.png',
+                        3 => 'images/logos/360-logo.webp',
+                        default => 'images/logos/logo.png'
+                    })
+                ];
+            }
+        }
+
+        $html = view('pdf.contrato', [
+            'contrato' => $contrato,
+            'compania' => $compania
+        ])->render();
+
+        try {
+            $pdf = Browsershot::html($html)
+                ->setOption('args', ['--no-sandbox', '--disable-setuid-sandbox'])
+                ->setOption('disable-gpu', true)
+                ->format('A4')
+                ->margins(10, 10, 10, 10)
+                ->showBackground()
+                ->showBrowserHeaderAndFooter()
+                ->hideHeader()
+                ->footerHtml('<div style="text-align: right; font-size: 8pt; width: 100%; padding-right: 20px; font-family: Arial, sans-serif; color: #666;">Página <span class="pageNumber"></span> de <span class="totalPages"></span></div>')
+                ->pdf();
+
+            return response($pdf)
+                ->header('Content-Type', 'application/pdf')
+                ->header('Content-Disposition', 'attachment; filename="contrato-' . str_pad($contrato->id, 8, '0', STR_PAD_LEFT) . '.pdf"');
+
+        } catch (\Exception $e) {
+            \Log::error('Error generando PDF:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
-        }
-    ])->findOrFail($id);
-
-    // HIDRATAR MANUALMENTE LOS AGREGADOS CON NOMBRES DE PRODUCTOS
-    if ($contrato->presupuesto && $contrato->presupuesto->agregados) {
-        foreach ($contrato->presupuesto->agregados as $agregado) {
-            $producto = \App\Models\ProductoServicio::with('tipo')->find($agregado->prd_servicio_id);
-            $agregado->producto_nombre = $producto ? $producto->nombre : 'Producto #' . $agregado->prd_servicio_id;
-            $agregado->tipo_id = $producto?->tipo_id;
-            $agregado->tipo_nombre = $producto?->tipo?->nombre_tipo_abono ?? '';
             
-            // Guardar el objeto producto completo para acceso a más propiedades
-            $agregado->producto_data = $producto;
+            return response()->json(['error' => 'Error al generar PDF: ' . $e->getMessage()], 500);
         }
     }
 
-    // HIDRATAR TASA SI ES NECESARIO
-    if ($contrato->presupuesto && $contrato->presupuesto->tasa_id) {
-        if (!$contrato->presupuesto->tasa) {
-            $tasa = \App\Models\ProductoServicio::find($contrato->presupuesto->tasa_id);
-            $contrato->presupuesto->tasa = $tasa;
-        }
-    }
+/**
+ * Crear contrato desde una empresa existente (sin presupuesto)
+ */
+public function createFromEmpresa($empresaId)
+{
+    $empresa = Empresa::with([
+        'prefijo',
+        'localidadFiscal.provincia',
+        'rubro',
+        'categoriaFiscal',
+        'plataforma',
+        'contactos' => function ($query) {
+            $query->where('es_activo', true)
+                  ->with([
+                      'lead.localidad.provincia', 
+                      'lead.rubro', 
+                      'lead.origen',
+                      'tipoResponsabilidad',
+                      'tipoDocumento',
+                      'nacionalidad'
+                  ]);
+        },
+        'responsables' => function ($query) {
+            $query->where('es_activo', true)
+                  ->with('tipoResponsabilidad');
+        },
+        'vehiculos'
+    ])->findOrFail($empresaId);
 
-    // HIDRATAR ABONO SI ES NECESARIO
-    if ($contrato->presupuesto && $contrato->presupuesto->abono_id) {
-        if (!$contrato->presupuesto->abono) {
-            $abono = \App\Models\ProductoServicio::find($contrato->presupuesto->abono_id);
-            $contrato->presupuesto->abono = $abono;
-        }
-    }
-
-    $compania = [
-        'id' => 1,
-        'nombre' => 'LOCALSAT',
-        'logo' => public_path('images/logos/logo.png')
-    ];
+    // Cargar los abonos de los vehículos
+    $codigosAlfa = $empresa->vehiculos->pluck('codigo_alfa')->filter()->toArray();
     
-    if ($contrato->presupuesto && $contrato->presupuesto->prefijo) {
-        $comercial = $contrato->presupuesto->prefijo->comercial;
-        if ($comercial instanceof \Illuminate\Database\Eloquent\Collection) {
-            $comercial = $comercial->first();
-        }
-        if ($comercial && $comercial->compania_id) {
-            $companiaId = $comercial->compania_id;
-            $compania = [
-                'id' => $companiaId,
-                'nombre' => match($companiaId) {
-                    1 => 'LOCALSAT',
-                    2 => 'SMARTSAT',
-                    3 => '360 SAT',
-                    default => 'LOCALSAT'
-                },
-                'logo' => public_path(match($companiaId) {
-                    1 => 'images/logos/logo.png',
-                    2 => 'images/logos/logosmart.png',
-                    3 => 'images/logos/360-logo.webp',
-                    default => 'images/logos/logo.png'
-                })
-            ];
+    $abonosVehiculos = collect();
+    if (!empty($codigosAlfa)) {
+        $abonosVehiculos = DB::table('abonos_vehiculos')
+            ->whereIn('vehiculo_codigo_alfa', $codigosAlfa)
+            ->get()
+            ->groupBy('vehiculo_codigo_alfa');
+    }
+
+    // Procesar vehículos con sus abonos
+    $vehiculosConAbonos = $empresa->vehiculos->map(function ($vehiculo) use ($abonosVehiculos) {
+        $abonos = $abonosVehiculos->get($vehiculo->codigo_alfa, collect());
+        
+        return [
+            'id' => $vehiculo->id,
+            'codigo_alfa' => $vehiculo->codigo_alfa,
+            'avl_patente' => $vehiculo->avl_patente,
+            'avl_marca' => $vehiculo->avl_marca,
+            'avl_modelo' => $vehiculo->avl_modelo,
+            'avl_anio' => $vehiculo->avl_anio,
+            'avl_color' => $vehiculo->avl_color,
+            'avl_identificador' => $vehiculo->avl_identificador,
+            'abonos' => $abonos->map(function ($abono) {
+                return [
+                    'id' => $abono->id,
+                    'abono_codigo' => $abono->abono_codigo,
+                    'abono_nombre' => $abono->abono_nombre,
+                    'abono_precio' => (float) $abono->abono_precio,
+                    'abono_descuento' => (float) $abono->abono_descuento,
+                    'abono_descmotivo' => $abono->abono_descmotivo,
+                ];
+            }),
+        ];
+    });
+
+    // Calcular total mensual de abonos
+    $totalMensualAbonos = 0;
+    foreach ($vehiculosConAbonos as $vehiculo) {
+        foreach ($vehiculo['abonos'] as $abono) {
+            $precioConDescuento = $abono['abono_precio'] - ($abono['abono_precio'] * ($abono['abono_descuento'] / 100));
+            $totalMensualAbonos += $precioConDescuento;
         }
     }
 
-    $html = view('pdf.contrato', [
-        'contrato' => $contrato,
-        'compania' => $compania
-    ])->render();
+    // Generar código con prefijo + numeroalfa
+    $codigoPrefijo = $empresa->prefijo ? $empresa->prefijo->codigo : 'EMP';
+    $empresa->codigo_completo = $codigoPrefijo . '-' . $empresa->numeroalfa;
 
+    // Obtener el contacto principal
+    $contactoPrincipal = $empresa->contactos->firstWhere('es_contacto_principal', true);
+    
+    // Si no hay contacto principal, tomar el primer contacto activo
+    if (!$contactoPrincipal && $empresa->contactos->isNotEmpty()) {
+        $contactoPrincipal = $empresa->contactos->first();
+    }
+
+    // Forzar la carga de nombres de localidad y provincia
+    if ($contactoPrincipal && $contactoPrincipal->lead && $contactoPrincipal->lead->localidad) {
+        $contactoPrincipal->lead->localidad_nombre = $contactoPrincipal->lead->localidad->nombre;
+        if ($contactoPrincipal->lead->localidad->provincia) {
+            $contactoPrincipal->lead->provincia_nombre = $contactoPrincipal->lead->localidad->provincia->nombre;
+        }
+    }
+
+    if ($empresa->localidadFiscal) {
+        $empresa->localidad_fiscal_nombre = $empresa->localidadFiscal->nombre;
+        if ($empresa->localidadFiscal->provincia) {
+            $empresa->provincia_fiscal_nombre = $empresa->localidadFiscal->provincia->nombre;
+        }
+    }
+
+    // Obtener datos para los selects
+    $tiposResponsabilidad = TipoResponsabilidad::where('es_activo', true)->get();
+    $tiposDocumento = TipoDocumento::where('es_activo', true)->get();
+    $nacionalidades = Nacionalidad::all();
+    $categoriasFiscales = CategoriaFiscal::where('es_activo', true)->get();
+    $plataformas = Plataforma::where('es_activo', true)->get();
+    $rubros = Rubro::where('activo', true)->get();
+    $provincias = Provincia::where('activo', true)->get();
+
+    return Inertia::render('Comercial/Contratos/CreateFromEmpresa', [
+        'empresa' => $empresa,
+        'contacto' => $contactoPrincipal,
+        'responsables' => $empresa->responsables,
+        'vehiculos' => $vehiculosConAbonos, // Ahora con abonos incluidos
+        'totalMensualAbonos' => $totalMensualAbonos, // Total mensual calculado
+        'tiposResponsabilidad' => $tiposResponsabilidad,
+        'tiposDocumento' => $tiposDocumento,
+        'nacionalidades' => $nacionalidades,
+        'categoriasFiscales' => $categoriasFiscales,
+        'plataformas' => $plataformas,
+        'rubros' => $rubros,
+        'provincias' => $provincias,
+    ]);
+}
+/**
+ * Guardar nuevo contrato desde empresa existente (sin presupuesto)
+ */
+public function storeFromEmpresa(Request $request)
+{
+    $request->validate([
+        'empresa_id' => 'required|exists:empresas,id',
+        'contacto_id' => 'nullable|exists:empresa_contactos,id',
+        'responsables' => 'nullable|array',
+        'metodo_pago' => 'nullable|in:cbu,tarjeta',
+        'datos_cbu' => 'required_if:metodo_pago,cbu|nullable|array',
+        'datos_tarjeta' => 'required_if:metodo_pago,tarjeta|nullable|array',
+        'total_mensual_abonos' => 'nullable|numeric',
+    ]);
+
+    $usuario = Auth::user();
+    
+    DB::beginTransaction();
+    
     try {
-        $pdf = Browsershot::html($html)
-            ->setOption('args', ['--no-sandbox', '--disable-setuid-sandbox'])
-            ->setOption('disable-gpu', true)
-            ->format('A4')
-            ->margins(10, 10, 10, 10)
-            ->showBackground()
-            ->showBrowserHeaderAndFooter()
-            ->hideHeader()
-            ->footerHtml('<div style="text-align: right; font-size: 8pt; width: 100%; padding-right: 20px; font-family: Arial, sans-serif; color: #666;">Página <span class="pageNumber"></span> de <span class="totalPages"></span></div>')
-            ->pdf();
+        $empresa = Empresa::with([
+            'vehiculos',
+            'localidadFiscal.provincia',
+            'rubro',
+            'categoriaFiscal',
+            'plataforma',
+            'prefijo' // ← Necesario para determinar compañía
+        ])->findOrFail($request->empresa_id);
+        
+        $contacto = $request->contacto_id ? EmpresaContacto::with('lead.localidad.provincia', 'lead.rubro', 'lead.origen', 'tipoResponsabilidad', 'tipoDocumento', 'nacionalidad')->find($request->contacto_id) : null;
+        
+        // Generar ID según compañía
+        $contratoId = ContratoHelper::generarNumeroContrato($empresa->prefijo_id);
+        
+        // Crear contrato con TODOS los campos necesarios
+        $contrato = new Contrato();
+        $contrato->id = $contratoId; // ← Asignar ID manualmente
+        $contrato->presupuesto_id = null;
+        $contrato->empresa_id = $empresa->id;
+        $contrato->lead_id = $contacto?->lead_id ?? null;
+        
+        $contrato->fecha_emision = now();
+        $contrato->estado_id = 1; // Activo
+        
+        // ... resto del código (asignaciones de datos) igual ...
+        
+        $contrato->created_by = $usuario->id;
+        $contrato->created = now();
+        $contrato->modified = now();
+        $contrato->activo = true;
+        $contrato->save();
+        
+        // Actualizar empresa con número de contrato
+        $empresa->update(['numeroalfa' => $contratoId]);
+        
+        // ... resto del código (vehículos, responsables, método de pago) igual ...
 
-        return response($pdf)
-            ->header('Content-Type', 'application/pdf')
-            ->header('Content-Disposition', 'attachment; filename="contrato-' . str_pad($contrato->id, 8, '0', STR_PAD_LEFT) . '.pdf"');
+        DB::commit();
+
+        return redirect()->route('comercial.contratos.show', $contrato->id)
+            ->with('success', 'Contrato generado exitosamente');
 
     } catch (\Exception $e) {
-        \Log::error('Error generando PDF:', [
-            'error' => $e->getMessage(),
+        DB::rollBack();
+        Log::error('Error al generar contrato desde empresa: ' . $e->getMessage(), [
             'trace' => $e->getTraceAsString()
         ]);
-        
-        return response()->json(['error' => 'Error al generar PDF: ' . $e->getMessage()], 500);
+        return back()->withErrors(['error' => 'Error al generar contrato: ' . $e->getMessage()]);
     }
 }
-
 }

@@ -28,7 +28,7 @@ class LocalidadController extends Controller
                 ->where('localidades.activo', 1)
                 ->where('provincias.activo', 1)
                 ->where(function($q) use ($request) {
-                    $q->where('localidades.localidad', 'LIKE', '%' . $request->search . '%')
+                    $q->where('localidades.nombre', 'LIKE', '%' . $request->search . '%')  // ← Cambiado
                       ->orWhere('localidades.codigo_postal', 'LIKE', '%' . $request->search . '%');
                 });
             
@@ -38,12 +38,12 @@ class LocalidadController extends Controller
             
             $localidades = $query->select(
                     'localidades.id',
-                    'localidades.localidad as nombre',
+                    'localidades.nombre',  // ← Ya es 'nombre'
                     'localidades.provincia_id',
                     'localidades.codigo_postal',
-                    'provincias.provincia'
+                    'provincias.nombre as provincia' 
                 )
-                ->orderBy('localidades.localidad')
+                ->orderBy('localidades.nombre')
                 ->limit(20)
                 ->get();
             
